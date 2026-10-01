@@ -1,0 +1,23 @@
+# Compilación (Maven / Gradle)
+target/
+build/
+.gradle/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Secretos y configuración local (nunca al repositorio)
+.env
+*.env
+*.pem
+*.key
+
+# Bases de datos locales y logs
+*.db
+*.sqlite
+*.log
+
+# Sistema
+.DS_Store
