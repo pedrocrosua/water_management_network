@@ -21,3 +21,7 @@ build/
 
 # Sistema
 .DS_Store
+
+# Material de trabajo local (no se sube al repositorio)
+docs/ARCHITECTURE.md
+notas.txt
