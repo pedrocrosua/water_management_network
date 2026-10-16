@@ -21,7 +21,7 @@ Las aplicaciones se comunican mediante **sockets TCP** con protocolo propio y me
 
 ## Tecnologías
 
-Java + Spring Boot · Apache Kafka · SQLite · Docker · AWS
+Java + Spring Boot · Apache Kafka · SQLite · Docker · Railway
 
 ## Enunciado
 
