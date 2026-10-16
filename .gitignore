@@ -2,6 +2,7 @@
 target/
 build/
 .gradle/
+.m2/
 
 # IDEs
 .idea/

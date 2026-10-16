@@ -1,0 +1,10 @@
+.git
+**/target
+.m2
+docs
+*.md
+*.pdf
+notas.txt
+.idea
+.vscode
+*.db
