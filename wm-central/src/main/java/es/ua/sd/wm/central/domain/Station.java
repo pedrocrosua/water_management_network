@@ -34,6 +34,16 @@ public record Station(String id, String location, StationState state, boolean ou
         return withState(StationState.DISCONNECTED);
     }
 
+    /** Its Engine reported a fault: red on the panel. */
+    public Station leaking() {
+        return withState(StationState.LEAK);
+    }
+
+    /** The fault is fixed. Only a station that was leaking changes. */
+    public Station leakCleared() {
+        return state == StationState.LEAK ? connected() : this;
+    }
+
     /** The station reported where it is installed. */
     public Station locatedAt(String newLocation) {
         return new Station(id, newLocation, state, outOfService);

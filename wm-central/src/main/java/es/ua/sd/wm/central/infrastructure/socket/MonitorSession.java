@@ -19,7 +19,8 @@ import org.slf4j.LoggerFactory;
  * Conversation with one connected WM_WS_M.
  *
  * <p>The first message must be AUTH. After that the Monitor sends HEALTH every second; the
- * socket's read timeout closes the session if nothing arrives for a while.
+ * socket's read timeout closes the session if nothing arrives for a while. LEAK and
+ * LEAK_CLEARED always refer to the station that authenticated on this connection.
  */
 final class MonitorSession {
 
@@ -67,6 +68,14 @@ final class MonitorSession {
         switch (message.type()) {
             case AUTH -> authenticate(message);
             case HEALTH -> log.debug("HEALTH from {}", claimedStationId);
+            case LEAK -> {
+                log.warn("{} reports a LEAK", claimedStationId);
+                registry.reportLeak(claimedStationId);
+            }
+            case LEAK_CLEARED -> {
+                log.info("{} reports the leak is fixed", claimedStationId);
+                registry.clearLeak(claimedStationId);
+            }
             default -> log.warn("Unexpected message from {}: {}", claimedStationId, message);
         }
     }

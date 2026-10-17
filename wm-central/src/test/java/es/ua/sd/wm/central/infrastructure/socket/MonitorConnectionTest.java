@@ -133,6 +133,21 @@ class MonitorConnectionTest {
         }
     }
 
+    @Test
+    void leakAndLeakClearedChangeTheStationAndAreSentBackAsState() throws Exception {
+        try (FakeMonitor monitor = new FakeMonitor()) {
+            monitor.send("AUTH#WS-56#Leaky park");
+            monitor.nextMessage();
+
+            monitor.send("LEAK#WS-56");
+            assertThat(monitor.nextMessage()).isEqualTo("STATE#WS-56#LEAK");
+            assertThat(stateOf("WS-56")).isEqualTo(StationState.LEAK);
+
+            monitor.send("LEAK_CLEARED#WS-56");
+            assertThat(monitor.nextMessage()).isEqualTo("STATE#WS-56#AVAILABLE");
+        }
+    }
+
     private StationState stateOf(String stationId) {
         return registry.find(stationId).orElseThrow().state();
     }

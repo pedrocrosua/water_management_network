@@ -3,6 +3,7 @@ package es.ua.sd.wm.monitor.infrastructure.config;
 import es.ua.sd.wm.monitor.application.StationMonitor;
 import es.ua.sd.wm.monitor.domain.StationIdentity;
 import es.ua.sd.wm.monitor.infrastructure.central.SocketCentralConnection;
+import es.ua.sd.wm.monitor.infrastructure.engine.EngineSocketServer;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
@@ -24,6 +25,16 @@ class MonitorConfiguration {
                 new SocketCentralConnection(centralHost, centralPort),
                 Duration.ofSeconds(1),
                 Duration.ofSeconds(3));
+    }
+
+    /** Listens for the station's Engine from start-up; the Monitor sends it a PING every second. */
+    @Bean(initMethod = "start", destroyMethod = "stop")
+    EngineSocketServer engineSocketServer(@Value("${engine.port}") int enginePort,
+                                          @Value("${station.id}") String stationId,
+                                          @Value("${station.location}") String location,
+                                          StationMonitor monitor) {
+        return new EngineSocketServer(enginePort, new StationIdentity(stationId, location), monitor,
+                Duration.ofSeconds(1));
     }
 
     /** Runs the Monitor on the main thread; the application lives as long as it runs. */

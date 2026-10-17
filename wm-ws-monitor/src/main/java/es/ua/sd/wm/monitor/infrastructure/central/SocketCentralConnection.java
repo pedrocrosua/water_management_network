@@ -56,6 +56,16 @@ public class SocketCentralConnection implements CentralConnection {
     }
 
     @Override
+    public void reportLeak() throws IOException {
+        channel.send(SocketMessage.of(MessageType.LEAK, station.id()).format());
+    }
+
+    @Override
+    public void reportLeakCleared() throws IOException {
+        channel.send(SocketMessage.of(MessageType.LEAK_CLEARED, station.id()).format());
+    }
+
+    @Override
     public boolean isOpen() {
         FrameChannel current = channel;
         return current != null && !current.isClosed();

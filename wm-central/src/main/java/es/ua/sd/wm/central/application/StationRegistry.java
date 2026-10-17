@@ -56,6 +56,16 @@ public class StationRegistry {
         change(stationId, current -> current == null ? null : current.disconnected());
     }
 
+    /** The station's Monitor detected a fault in its Engine. */
+    public void reportLeak(String stationId) {
+        change(stationId, current -> current == null ? null : current.leaking());
+    }
+
+    /** The station's Monitor reports the fault is fixed. */
+    public void clearLeak(String stationId) {
+        change(stationId, current -> current == null ? null : current.leakCleared());
+    }
+
     private Station change(String stationId, UnaryOperator<Station> update) {
         // compute() locks only this station's entry while the update and the save run.
         Station changed = stationsById.compute(stationId, (id, current) -> {

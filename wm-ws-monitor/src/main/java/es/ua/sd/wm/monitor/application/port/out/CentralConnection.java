@@ -20,6 +20,12 @@ public interface CentralConnection extends AutoCloseable {
     /** Tells WM_Central the station is alive. */
     void sendHealth() throws IOException;
 
+    /** Tells WM_Central the station has a fault (LEAK). */
+    void reportLeak() throws IOException;
+
+    /** Tells WM_Central the fault is fixed (LEAK_CLEARED). */
+    void reportLeakCleared() throws IOException;
+
     boolean isOpen();
 
     @Override

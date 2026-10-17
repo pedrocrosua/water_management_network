@@ -110,6 +110,50 @@ class StationRegistryTest {
         assertThat(published).isEmpty();
     }
 
+    @Test
+    void reportedLeakTurnsTheStationRedAndIsAnnounced() {
+        StationRegistry registry = new StationRegistry(repository, List.of(publisher));
+        registry.connect("WS-01", "Canalejas");
+
+        registry.reportLeak("WS-01");
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.LEAK);
+        assertThat(published.getLast().state()).isEqualTo(StationState.LEAK);
+    }
+
+    @Test
+    void clearedLeakMakesTheStationAvailableAgain() {
+        StationRegistry registry = new StationRegistry(repository, List.of(publisher));
+        registry.connect("WS-01", "Canalejas");
+        registry.reportLeak("WS-01");
+
+        registry.clearLeak("WS-01");
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.AVAILABLE);
+    }
+
+    @Test
+    void clearedLeakOnABlockedStationLeavesItOutOfService() {
+        repository.save(new Station("WS-01", "Canalejas", StationState.DISCONNECTED, true));
+        StationRegistry registry = new StationRegistry(repository, List.of(publisher));
+        registry.connect("WS-01", "Canalejas");
+        registry.reportLeak("WS-01");
+
+        registry.clearLeak("WS-01");
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.OUT_OF_SERVICE);
+    }
+
+    @Test
+    void clearingWithoutALeakChangesNothing() {
+        StationRegistry registry = new StationRegistry(repository, List.of(publisher));
+        registry.connect("WS-01", "Canalejas");
+
+        registry.clearLeak("WS-01");
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.AVAILABLE);
+    }
+
     private static final class FakeRepository implements StationRepository {
 
         private final Map<String, Station> stations = new LinkedHashMap<>();

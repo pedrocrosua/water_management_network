@@ -7,6 +7,8 @@ import es.ua.sd.wm.monitor.application.port.out.CentralConnection;
 import es.ua.sd.wm.monitor.domain.StationIdentity;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
@@ -70,6 +72,58 @@ class StationMonitorTest {
         assertThat(central.connections.get()).isEqualTo(1);
     }
 
+    @Test
+    void engineFaultIsReportedToCentralOnlyOnce() {
+        startMonitorAndWaitUntilConnected();
+
+        monitor.engineAnswered(false);
+        monitor.engineAnswered(false);
+
+        assertThat(central.reports).containsExactly("LEAK");
+    }
+
+    @Test
+    void engineWorkingAgainClearsTheLeak() {
+        startMonitorAndWaitUntilConnected();
+
+        monitor.engineAnswered(false);
+        monitor.engineAnswered(true);
+
+        assertThat(central.reports).containsExactly("LEAK", "LEAK_CLEARED");
+    }
+
+    @Test
+    void healthyEngineSendsNothingExtra() {
+        startMonitorAndWaitUntilConnected();
+
+        monitor.engineAnswered(true);
+
+        assertThat(central.reports).isEmpty();
+    }
+
+    @Test
+    void lostEngineIsReportedAsALeak() {
+        startMonitorAndWaitUntilConnected();
+
+        monitor.engineLost();
+
+        assertThat(central.reports).containsExactly("LEAK");
+    }
+
+    @Test
+    void leakDetectedWhileCentralIsUnreachableIsSentOnceConnected() {
+        monitor.engineAnswered(false);
+
+        startMonitorAndWaitUntilConnected();
+
+        await().atMost(Duration.ofSeconds(2)).until(() -> central.reports.equals(List.of("LEAK")));
+    }
+
+    private void startMonitorAndWaitUntilConnected() {
+        startMonitor();
+        await().atMost(Duration.ofSeconds(2)).until(() -> central.healthMessages.get() >= 1);
+    }
+
     private void startMonitor() {
         running = Thread.ofPlatform().start(() -> {
             try {
@@ -84,6 +138,7 @@ class StationMonitorTest {
 
         final AtomicInteger connections = new AtomicInteger();
         final AtomicInteger healthMessages = new AtomicInteger();
+        final List<String> reports = new CopyOnWriteArrayList<>();
         volatile int failedAttemptsBeforeAnswering;
         volatile int closeAfterHealthMessages = Integer.MAX_VALUE;
         volatile boolean rejectStation;
@@ -110,6 +165,16 @@ class StationMonitorTest {
             if (++healthOnThisConnection >= closeAfterHealthMessages) {
                 open = false;
             }
+        }
+
+        @Override
+        public void reportLeak() {
+            reports.add("LEAK");
+        }
+
+        @Override
+        public void reportLeakCleared() {
+            reports.add("LEAK_CLEARED");
         }
 
         @Override
