@@ -56,6 +56,11 @@ public class StationRegistry {
         change(stationId, current -> current == null ? null : current.disconnected());
     }
 
+    /** The station's Engine opened its valve. Returns the station, irrigating only if it was available. */
+    public Optional<Station> startIrrigation(String stationId) {
+        return Optional.ofNullable(change(stationId, current -> current == null ? null : current.irrigating()));
+    }
+
     /** The station's Monitor detected a fault in its Engine. */
     public void reportLeak(String stationId) {
         change(stationId, current -> current == null ? null : current.leaking());

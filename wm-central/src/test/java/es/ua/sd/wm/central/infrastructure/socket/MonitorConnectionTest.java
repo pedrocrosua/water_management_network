@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -25,6 +26,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * Each test uses its own station id so they do not affect each other.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@EmbeddedKafka(bootstrapServersProperty = "spring.kafka.bootstrap-servers")
 class MonitorConnectionTest {
 
     @TempDir

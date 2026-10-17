@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.core.type.TypeReference;
@@ -23,6 +24,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** Starts the real WM_Central on a random port, with a fresh SQLite file. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@EmbeddedKafka(bootstrapServersProperty = "spring.kafka.bootstrap-servers")
 class CentralApplicationTest {
 
     @TempDir
