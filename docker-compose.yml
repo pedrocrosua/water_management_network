@@ -45,6 +45,26 @@ services:
       - wm-data:/data # the SQLite file survives restarts and rebuilds
     command: ["--socket.port=5000", "--db.path=/data/wm.db"]
 
+  ws1-monitor:
+    build:
+      context: .
+      args:
+        MODULE: wm-ws-monitor
+        APP_NAME: WM_WS_M
+    depends_on: [wm-central]
+    command: ["--central.host=wm-central", "--central.port=5000",
+              "--station.id=WS-01", "--station.location=Parque de Canalejas"]
+
+  ws2-monitor:
+    build:
+      context: .
+      args:
+        MODULE: wm-ws-monitor
+        APP_NAME: WM_WS_M
+    depends_on: [wm-central]
+    command: ["--central.host=wm-central", "--central.port=5000",
+              "--station.id=WS-02", "--station.location=Jardines de Abril"]
+
   # Build tool: nothing is compiled on the host.
   # Runs with the host user's id so target/ is not left owned by root. Downloaded
   # dependencies are cached in ./.m2 (ignored by git): a named volume would be created
