@@ -7,6 +7,8 @@ import es.ua.sd.wm.engine.application.port.out.MonitorConnection;
 import es.ua.sd.wm.engine.domain.StationIdentity;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +21,8 @@ class MonitorLinkTest {
     private static final Duration SHORT = Duration.ofMillis(20);
 
     private final FakeMonitor monitor = new FakeMonitor();
-    private final MonitorLink link = new MonitorLink(monitor, SHORT, SHORT);
+    private final List<StationIdentity> identified = new CopyOnWriteArrayList<>();
+    private final MonitorLink link = new MonitorLink(monitor, identified::add, SHORT, SHORT);
     private Thread running;
 
     @AfterEach
@@ -36,6 +39,7 @@ class MonitorLinkTest {
 
         await().atMost(Duration.ofSeconds(2)).until(() -> link.currentStation().isPresent());
         assertThat(link.currentStation()).contains(new StationIdentity("WS-01", "Park"));
+        assertThat(identified).containsExactly(new StationIdentity("WS-01", "Park"));
     }
 
     @Test

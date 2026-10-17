@@ -66,10 +66,11 @@ services:
       args:
         MODULE: wm-ws-engine
         APP_NAME: WM_WS_E
-    depends_on: [ws1-monitor]
+    depends_on: [ws1-monitor, kafka]
     stdin_open: true
     tty: true
-    command: ["--monitor.host=ws1-monitor", "--monitor.port=6000"]
+    command: ["--monitor.host=ws1-monitor", "--monitor.port=6000",
+              "--spring.kafka.bootstrap-servers=kafka:9092"]
 
   ws2-monitor:
     build:
@@ -88,10 +89,11 @@ services:
       args:
         MODULE: wm-ws-engine
         APP_NAME: WM_WS_E
-    depends_on: [ws2-monitor]
+    depends_on: [ws2-monitor, kafka]
     stdin_open: true
     tty: true
-    command: ["--monitor.host=ws2-monitor", "--monitor.port=6000"]
+    command: ["--monitor.host=ws2-monitor", "--monitor.port=6000",
+              "--spring.kafka.bootstrap-servers=kafka:9092"]
 
   # Build tool: nothing is compiled on the host.
   # Runs with the host user's id so target/ is not left owned by root. Downloaded

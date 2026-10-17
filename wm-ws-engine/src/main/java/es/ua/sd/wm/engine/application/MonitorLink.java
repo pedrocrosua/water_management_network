@@ -5,6 +5,7 @@ import es.ua.sd.wm.engine.domain.StationIdentity;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,14 +15,18 @@ public class MonitorLink {
     private static final Logger log = LoggerFactory.getLogger(MonitorLink.class);
 
     private final MonitorConnection monitor;
+    private final Consumer<StationIdentity> onIdentified;
     private final Duration retryDelay;
     private final Duration checkInterval;
 
     private volatile boolean running = true;
     private volatile StationIdentity currentStation;
 
-    public MonitorLink(MonitorConnection monitor, Duration retryDelay, Duration checkInterval) {
+    /** onIdentified runs every time a Monitor tells the Engine which station it belongs to. */
+    public MonitorLink(MonitorConnection monitor, Consumer<StationIdentity> onIdentified,
+                       Duration retryDelay, Duration checkInterval) {
         this.monitor = monitor;
+        this.onIdentified = onIdentified;
         this.retryDelay = retryDelay;
         this.checkInterval = checkInterval;
     }
@@ -56,6 +61,7 @@ public class MonitorLink {
     private void stayConnected() throws IOException, InterruptedException {
         currentStation = monitor.connect();
         log.info(">>> Working as Engine of station {} ({})", currentStation.id(), currentStation.location());
+        onIdentified.accept(currentStation);
 
         // The connection answers the PINGs by itself; here we only notice when it ends.
         while (running && monitor.isOpen()) {
