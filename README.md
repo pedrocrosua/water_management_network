@@ -30,3 +30,28 @@ Java + Spring Boot · Apache Kafka · SQLite · Docker · Railway
 ## Estado
 
 En desarrollo.
+
+El esqueleto de los cuatro ejecutables está creado. `wm-common` incluye un codec para
+tramas `<STX><DATA><ETX><LRC>`: codifica mensajes ASCII imprimibles y rechaza las tramas
+mal formadas o con un checksum incorrecto. `FrameReader` reúne las tramas desde un flujo
+TCP aunque lleguen fragmentadas o varias juntas. `FrameChannel` gestiona los envíos,
+las confirmaciones ACK/NACK, el tiempo de espera y tres reintentos. La integración entre
+aplicaciones y la lógica de riego están pendientes.
+
+`wm-common` también ofrece `Validator`, una clase de comprobaciones reutilizables por
+todos los módulos: valores no nulos, textos no vacíos, longitud máxima, caracteres ASCII
+imprimibles y números positivos.
+
+## Compilación y pruebas
+
+Con Docker disponible, desde la raíz del proyecto:
+
+```bash
+docker compose run --rm maven mvn -B verify
+```
+
+Para probar únicamente el módulo común:
+
+```bash
+docker compose run --rm maven mvn -B -pl wm-common -am test
+```
