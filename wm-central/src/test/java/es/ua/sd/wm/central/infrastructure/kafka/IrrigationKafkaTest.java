@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
@@ -57,6 +58,9 @@ class IrrigationKafkaTest {
     @Autowired
     private StationRegistry registry;
 
+    @Autowired
+    private JdbcClient database;
+
     private KafkaProducer<String, String> producer;
     private KafkaConsumer<String, String> consumer;
 
@@ -84,7 +88,7 @@ class IrrigationKafkaTest {
     }
 
     @Test
-    void requestFromAnOperatorEndsWithTheStationIrrigating() {
+    void irrigationIsAuthorizedAndItsEndIsSavedAndSummarized() {
         registry.connect("WS-01", "Parque de Canalejas");
 
         producer.send(new ProducerRecord<>(Topics.IRRIGATION_REQUESTS, "WS-01", """
@@ -98,6 +102,15 @@ class IrrigationKafkaTest {
                 """));
         receiveUntil(message -> message.contains("\"type\":\"AUTHORIZED\""));
         assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.IRRIGATING);
+
+        producer.send(new ProducerRecord<>(Topics.STATION_TELEMETRY, "WS-01", """
+                {"type":"IRRIGATION_ENDED","requestId":"R1","stationId":"WS-01","operatorId":"FO-001",
+                 "totalLitres":20.0,"durationSeconds":60,"reason":"TIME_LIMIT"}
+                """));
+        receiveUntil(message -> message.contains("\"type\":\"IRRIGATION_ENDED\""));
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.AVAILABLE);
+        assertThat(database.sql("SELECT end_reason FROM irrigations WHERE station_id = 'WS-01'")
+                .query(String.class).list()).containsExactly("TIME_LIMIT");
     }
 
     @Test

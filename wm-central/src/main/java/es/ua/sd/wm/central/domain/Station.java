@@ -39,6 +39,11 @@ public record Station(String id, String location, StationState state, boolean ou
         return state == StationState.AVAILABLE ? withState(StationState.IRRIGATING) : this;
     }
 
+    /** Its Engine closed the valve. Only a station that was irrigating becomes available again. */
+    public Station irrigationEnded() {
+        return state == StationState.IRRIGATING ? connected() : this;
+    }
+
     /** Its Engine reported a fault: red on the panel. */
     public Station leaking() {
         return withState(StationState.LEAK);

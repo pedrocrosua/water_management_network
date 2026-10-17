@@ -2,7 +2,9 @@ package es.ua.sd.wm.central.infrastructure.kafka;
 
 import es.ua.sd.wm.central.application.IrrigationService;
 import es.ua.sd.wm.common.event.CommandAck;
+import es.ua.sd.wm.common.event.IrrigationEnded;
 import es.ua.sd.wm.common.event.StationEvent;
+import es.ua.sd.wm.common.event.Telemetry;
 import es.ua.sd.wm.common.event.Topics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,8 +36,10 @@ class StationEventListener {
             log.warn("Ignored an invalid station event: {}", message);
             return;
         }
-        if (event instanceof CommandAck answer) {
-            irrigations.commandAnswered(answer);
+        switch (event) {
+            case CommandAck answer -> irrigations.commandAnswered(answer);
+            case Telemetry telemetry -> irrigations.telemetryReceived(telemetry);
+            case IrrigationEnded ended -> irrigations.irrigationEnded(ended);
         }
     }
 }

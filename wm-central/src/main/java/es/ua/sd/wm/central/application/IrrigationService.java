@@ -1,18 +1,25 @@
 package es.ua.sd.wm.central.application;
 
+import es.ua.sd.wm.central.application.port.out.IrrigationProgressPublisher;
+import es.ua.sd.wm.central.application.port.out.IrrigationRepository;
 import es.ua.sd.wm.central.application.port.out.OperatorNotifier;
 import es.ua.sd.wm.central.application.port.out.OperatorRepository;
 import es.ua.sd.wm.central.application.port.out.StationCommandSender;
+import es.ua.sd.wm.central.domain.IrrigationRecord;
 import es.ua.sd.wm.central.domain.Operator;
 import es.ua.sd.wm.central.domain.Station;
 import es.ua.sd.wm.common.event.CommandAck;
 import es.ua.sd.wm.common.event.CommandType;
+import es.ua.sd.wm.common.event.IrrigationEnded;
 import es.ua.sd.wm.common.event.IrrigationRequest;
 import es.ua.sd.wm.common.event.NotificationType;
 import es.ua.sd.wm.common.event.OperatorNotification;
 import es.ua.sd.wm.common.event.StationCommand;
+import es.ua.sd.wm.common.event.Telemetry;
 import es.ua.sd.wm.common.model.StationState;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +35,9 @@ import org.slf4j.LoggerFactory;
  * <p>Steps: validate the request, ask the station's Engine to open its valve (START) and wait
  * for its answer. Only when the Engine confirms does the station become IRRIGATING. If the
  * Engine does not answer in time, the request is denied so the station is not stuck waiting.
+ *
+ * <p>While irrigating, the Engine's telemetry goes to the panel. When the Engine reports the
+ * end, the station is available again, the irrigation is saved and the operator gets a summary.
  */
 public class IrrigationService {
 
@@ -37,17 +47,25 @@ public class IrrigationService {
     private final OperatorRepository operators;
     private final StationCommandSender commands;
     private final OperatorNotifier notifier;
+    private final IrrigationProgressPublisher progress;
+    private final IrrigationRepository history;
     private final Duration answerTimeout;
     // Requests already sent to a station and waiting for its answer, one per station.
     private final Map<String, IrrigationRequest> waitingByStation = new ConcurrentHashMap<>();
+    // Irrigations in progress, one per station.
+    private final Map<String, OngoingIrrigation> ongoingByStation = new ConcurrentHashMap<>();
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
 
     public IrrigationService(StationRegistry registry, OperatorRepository operators,
-                             StationCommandSender commands, OperatorNotifier notifier, Duration answerTimeout) {
+                             StationCommandSender commands, OperatorNotifier notifier,
+                             IrrigationProgressPublisher progress, IrrigationRepository history,
+                             Duration answerTimeout) {
         this.registry = registry;
         this.operators = operators;
         this.commands = commands;
         this.notifier = notifier;
+        this.progress = progress;
+        this.history = history;
         this.answerTimeout = answerTimeout;
     }
 
@@ -96,8 +114,37 @@ public class IrrigationService {
             deny(request, answer.stationId() + " is no longer available (" + station.state() + ")");
             return;
         }
+        ongoingByStation.put(answer.stationId(), new OngoingIrrigation(request, Instant.now()));
         log.info("{} is irrigating for request {}", answer.stationId(), answer.requestId());
         tell(request, NotificationType.AUTHORIZED, answer.stationId() + " is irrigating");
+    }
+
+    /** One second of an irrigation. Telemetry of an irrigation WM_Central does not know is ignored. */
+    public void telemetryReceived(Telemetry telemetry) {
+        if (findOngoing(telemetry.stationId(), telemetry.requestId()) != null) {
+            progress.publish(telemetry);
+        }
+    }
+
+    /** The Engine closed the valve: free the station, save the irrigation and tell the operator. */
+    public void irrigationEnded(IrrigationEnded ended) {
+        OngoingIrrigation irrigation = findOngoing(ended.stationId(), ended.requestId());
+        if (irrigation == null || !ongoingByStation.remove(ended.stationId(), irrigation)) {
+            log.info("{} ended request {}, which was not in progress here", ended.stationId(), ended.requestId());
+            return;
+        }
+        registry.endIrrigation(ended.stationId());
+
+        IrrigationRequest request = irrigation.request();
+        history.save(new IrrigationRecord(ended.stationId(), request.operatorId(), request.source(),
+                irrigation.startedAt(), Instant.now(), request.limitSeconds(), ended.totalLitres(), ended.reason()));
+        String message = String.format(Locale.ROOT, "%s finished (%s): %.1f L in %d s",
+                ended.stationId(), ended.reason(), ended.totalLitres(), ended.durationSeconds());
+        log.info(message);
+        if (request.operatorId() != null) {
+            notifier.notify(new OperatorNotification(request.requestId(), request.operatorId(),
+                    request.stationId(), NotificationType.IRRIGATION_ENDED, message, ended));
+        }
     }
 
     public void stop() {
@@ -139,6 +186,11 @@ public class IrrigationService {
         return null;
     }
 
+    private OngoingIrrigation findOngoing(String stationId, String requestId) {
+        OngoingIrrigation irrigation = ongoingByStation.get(stationId);
+        return irrigation != null && irrigation.request().requestId().equals(requestId) ? irrigation : null;
+    }
+
     /** The Engine opened its valve for a request that was already denied: close it. */
     private void stopLateIrrigation(CommandAck answer) {
         if (answer.accepted()) {
@@ -162,5 +214,9 @@ public class IrrigationService {
             notifier.notify(new OperatorNotification(request.requestId(), request.operatorId(),
                     request.stationId(), type, message, null));
         }
+    }
+
+    /** An authorized request whose valve is open, and when it opened. */
+    private record OngoingIrrigation(IrrigationRequest request, Instant startedAt) {
     }
 }

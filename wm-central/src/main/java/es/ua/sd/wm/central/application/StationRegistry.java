@@ -61,6 +61,11 @@ public class StationRegistry {
         return Optional.ofNullable(change(stationId, current -> current == null ? null : current.irrigating()));
     }
 
+    /** The station's Engine closed its valve. */
+    public void endIrrigation(String stationId) {
+        change(stationId, current -> current == null ? null : current.irrigationEnded());
+    }
+
     /** The station's Monitor detected a fault in its Engine. */
     public void reportLeak(String stationId) {
         change(stationId, current -> current == null ? null : current.leaking());

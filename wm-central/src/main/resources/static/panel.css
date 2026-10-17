@@ -58,6 +58,11 @@ h1 {
     text-transform: uppercase;
 }
 
+.progress {
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+}
+
 .AVAILABLE { background: var(--available); }
 .IRRIGATING { background: var(--available); animation: blink 1s infinite; }
 .LEAK { background: var(--leak); }

@@ -27,6 +27,24 @@ function showStation(station) {
         textElement('p', STATE_LABELS[station.state], 'state-label'));
 }
 
+// While a station irrigates, its card shows who asked for it, the flow, the water and the time.
+function showTelemetry(telemetry) {
+    const card = document.getElementById(telemetry.stationId);
+    if (!card || !card.classList.contains('IRRIGATING')) {
+        return;
+    }
+    const text = 'Operario ' + (telemetry.operatorId ?? '-') + ' · '
+        + telemetry.flowLitresPerMinute.toFixed(1) + ' L/min · '
+        + telemetry.accumulatedLitres.toFixed(1) + ' L · '
+        + telemetry.elapsedSeconds + ' s';
+    let progress = card.querySelector('.progress');
+    if (!progress) {
+        progress = textElement('p', '', 'progress');
+        card.appendChild(progress);
+    }
+    progress.textContent = text;
+}
+
 function textElement(tag, text, cssClass) {
     const element = document.createElement(tag);
     element.textContent = text;
@@ -39,5 +57,6 @@ function textElement(tag, text, cssClass) {
 const stream = new EventSource('/api/stations/stream');
 
 stream.addEventListener('station', event => showStation(JSON.parse(event.data)));
+stream.addEventListener('telemetry', event => showTelemetry(JSON.parse(event.data)));
 stream.onopen = () => { connectionText.textContent = 'Conectado a Central'; };
 stream.onerror = () => { connectionText.textContent = 'Sin conexión con Central, reintentando…'; };

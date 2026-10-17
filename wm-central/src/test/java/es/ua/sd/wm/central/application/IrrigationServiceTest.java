@@ -3,18 +3,24 @@ package es.ua.sd.wm.central.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import es.ua.sd.wm.central.application.port.out.IrrigationProgressPublisher;
+import es.ua.sd.wm.central.application.port.out.IrrigationRepository;
 import es.ua.sd.wm.central.application.port.out.OperatorNotifier;
 import es.ua.sd.wm.central.application.port.out.OperatorRepository;
 import es.ua.sd.wm.central.application.port.out.StationCommandSender;
 import es.ua.sd.wm.central.application.port.out.StationRepository;
+import es.ua.sd.wm.central.domain.IrrigationRecord;
 import es.ua.sd.wm.central.domain.Operator;
 import es.ua.sd.wm.central.domain.Station;
 import es.ua.sd.wm.common.event.CommandAck;
 import es.ua.sd.wm.common.event.CommandType;
+import es.ua.sd.wm.common.event.IrrigationEnded;
 import es.ua.sd.wm.common.event.IrrigationRequest;
 import es.ua.sd.wm.common.event.NotificationType;
 import es.ua.sd.wm.common.event.OperatorNotification;
 import es.ua.sd.wm.common.event.StationCommand;
+import es.ua.sd.wm.common.event.Telemetry;
+import es.ua.sd.wm.common.model.EndReason;
 import es.ua.sd.wm.common.model.IrrigationSource;
 import es.ua.sd.wm.common.model.StationState;
 import java.time.Duration;
@@ -34,6 +40,8 @@ class IrrigationServiceTest {
     private final Map<String, Operator> operators = new HashMap<>();
     private final List<StationCommand> sentCommands = new CopyOnWriteArrayList<>();
     private final List<OperatorNotification> notifications = new CopyOnWriteArrayList<>();
+    private final List<Telemetry> shownOnPanel = new CopyOnWriteArrayList<>();
+    private final List<IrrigationRecord> savedIrrigations = new CopyOnWriteArrayList<>();
     private StationRegistry registry;
     private IrrigationService service;
 
@@ -45,8 +53,10 @@ class IrrigationServiceTest {
         OperatorRepository operatorRepository = id -> Optional.ofNullable(operators.get(id));
         StationCommandSender commandSender = sentCommands::add;
         OperatorNotifier notifier = notifications::add;
+        IrrigationProgressPublisher panel = shownOnPanel::add;
+        IrrigationRepository irrigationRepository = savedIrrigations::add;
         service = new IrrigationService(registry, operatorRepository, commandSender, notifier,
-                Duration.ofMillis(300));
+                panel, irrigationRepository, Duration.ofMillis(300));
     }
 
     @AfterEach
@@ -151,6 +161,59 @@ class IrrigationServiceTest {
             assertThat(command.requestId()).isEqualTo("R-OLD");
         });
         assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.AVAILABLE);
+    }
+
+    @Test
+    void telemetryOfTheCurrentIrrigationIsShownOnThePanel() {
+        startIrrigation("R1");
+        Telemetry telemetry = new Telemetry("R1", "WS-01", "FO-001", 20.0, 1.0, 3);
+
+        service.telemetryReceived(telemetry);
+
+        assertThat(shownOnPanel).containsExactly(telemetry);
+    }
+
+    @Test
+    void telemetryOfAnUnknownIrrigationIsIgnored() {
+        service.telemetryReceived(new Telemetry("R-OLD", "WS-01", "FO-001", 20.0, 1.0, 3));
+
+        assertThat(shownOnPanel).isEmpty();
+    }
+
+    @Test
+    void endedIrrigationFreesTheStationIsSavedAndSummarizedToTheOperator() {
+        startIrrigation("R1");
+        IrrigationEnded ended = new IrrigationEnded("R1", "WS-01", "FO-001", 20.25, 60, EndReason.TIME_LIMIT);
+
+        service.irrigationEnded(ended);
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.AVAILABLE);
+        assertThat(savedIrrigations).singleElement().satisfies(saved -> {
+            assertThat(saved.stationId()).isEqualTo("WS-01");
+            assertThat(saved.operatorId()).isEqualTo("FO-001");
+            assertThat(saved.source()).isEqualTo(IrrigationSource.OPERATOR);
+            assertThat(saved.limitSeconds()).isEqualTo(60);
+            assertThat(saved.totalLitres()).isEqualTo(20.25);
+            assertThat(saved.endReason()).isEqualTo(EndReason.TIME_LIMIT);
+            assertThat(saved.endedAt()).isAfterOrEqualTo(saved.startedAt());
+        });
+        OperatorNotification summary = notifications.getLast();
+        assertThat(summary.type()).isEqualTo(NotificationType.IRRIGATION_ENDED);
+        assertThat(summary.summary()).isEqualTo(ended);
+        assertThat(summary.message()).isEqualTo("WS-01 finished (TIME_LIMIT): 20.3 L in 60 s");
+    }
+
+    @Test
+    void endOfAnUnknownIrrigationIsNotSaved() {
+        service.irrigationEnded(new IrrigationEnded("R-OLD", "WS-01", "FO-001", 1.0, 3, EndReason.MANUAL_STOP));
+
+        assertThat(savedIrrigations).isEmpty();
+        assertThat(notifications).isEmpty();
+    }
+
+    private void startIrrigation(String requestId) {
+        service.request(request(requestId, "FO-001", "WS-01"));
+        service.commandAnswered(new CommandAck(requestId, "WS-01", CommandType.START, true, null));
     }
 
     private static IrrigationRequest request(String requestId, String operatorId, String stationId) {
