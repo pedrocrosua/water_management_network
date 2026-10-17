@@ -1,6 +1,7 @@
 # Development: the whole system on a single machine.
 #
 #   docker compose up -d kafka                     # event broker
+#   docker compose up -d --build wm-central        # Central + panel at http://localhost:8080
 #   docker compose run --rm maven mvn -B verify    # build and test inside Docker
 
 services:
@@ -30,6 +31,19 @@ services:
       timeout: 10s
       retries: 10
 
+  wm-central:
+    build:
+      context: .
+      args:
+        MODULE: wm-central
+        APP_NAME: WM_Central
+    container_name: WM_Central
+    ports:
+      - "8080:8080"   # monitoring panel
+    volumes:
+      - wm-data:/data # the SQLite file survives restarts and rebuilds
+    command: ["--db.path=/data/wm.db"]
+
   # Build tool: nothing is compiled on the host.
   # Runs with the host user's id so target/ is not left owned by root. Downloaded
   # dependencies are cached in ./.m2 (ignored by git): a named volume would be created
@@ -44,3 +58,6 @@ services:
       MAVEN_OPTS: -Duser.home=/src
     volumes:
       - .:/src
+
+volumes:
+  wm-data:

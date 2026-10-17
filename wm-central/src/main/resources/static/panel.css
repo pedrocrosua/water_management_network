@@ -1,0 +1,69 @@
+:root {
+    --available: #2e7d32;
+    --leak: #c62828;
+    --out-of-service: #ef6c00;
+    --disconnected: #757575;
+    --text-on-colour: #ffffff;
+    --page: #f4f6f8;
+    --text: #1f2933;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: var(--page);
+    color: var(--text);
+}
+
+header {
+    padding: 16px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #dde2e6;
+}
+
+h1 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+.connection {
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+}
+
+.stations {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    padding: 24px;
+}
+
+.station {
+    padding: 16px;
+    border-radius: 8px;
+    color: var(--text-on-colour);
+}
+
+.station h2 {
+    margin: 0 0 4px;
+    font-size: 1.2rem;
+}
+
+.station p {
+    margin: 4px 0;
+}
+
+.state-label {
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.AVAILABLE { background: var(--available); }
+.IRRIGATING { background: var(--available); animation: blink 1s infinite; }
+.LEAK { background: var(--leak); }
+.OUT_OF_SERVICE { background: var(--out-of-service); }
+.DISCONNECTED { background: var(--disconnected); }
+
+@keyframes blink {
+    50% { opacity: 0.55; }
+}
