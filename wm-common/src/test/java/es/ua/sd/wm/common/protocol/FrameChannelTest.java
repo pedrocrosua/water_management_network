@@ -29,6 +29,35 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FrameChannelTest {
 
     @Test
+    void closeHandlerRunsOnceWhenThePeerDisconnects() throws Exception {
+        try (SocketPair sockets = new SocketPair()) {
+            BlockingQueue<String> events = new LinkedBlockingQueue<>();
+            try (FrameChannel channel = new FrameChannel(sockets.left, message -> {}, () -> events.add("closed"))) {
+                sockets.right.close();
+
+                assertEquals("closed", events.poll(2, TimeUnit.SECONDS));
+                channel.close();
+                assertNull(events.poll(200, TimeUnit.MILLISECONDS));
+            }
+        }
+    }
+
+    @Test
+    void closeHandlerRunsAfterTheMessagesAlreadyReceived() throws Exception {
+        try (SocketPair sockets = new SocketPair()) {
+            BlockingQueue<String> events = new LinkedBlockingQueue<>();
+            try (FrameChannel ignored = new FrameChannel(sockets.left, events::add, () -> events.add("closed"))) {
+                sockets.right.getOutputStream().write(FrameCodec.encode("AUTH#WS-01#Park"));
+                assertEquals(0x06, sockets.right.getInputStream().read());
+                sockets.right.close();
+
+                assertEquals("AUTH#WS-01#Park", events.poll(2, TimeUnit.SECONDS));
+                assertEquals("closed", events.poll(2, TimeUnit.SECONDS));
+            }
+        }
+    }
+
+    @Test
     void validFrameIsAcknowledgedAndDelivered() throws Exception {
         try (SocketPair sockets = new SocketPair()) {
             BlockingQueue<String> receivedMessages = new LinkedBlockingQueue<>();

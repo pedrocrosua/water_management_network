@@ -31,6 +31,7 @@ public final class FrameChannel implements AutoCloseable {
     private final OutputStream output;
     private final FrameReader frameReader;
     private final Consumer<String> messageHandler;
+    private final Runnable closeHandler;
     private final int acknowledgementTimeoutMillis;
     private final ExecutorService handlers;
     private final Object sendLock = new Object();
@@ -41,17 +42,29 @@ public final class FrameChannel implements AutoCloseable {
     private volatile IOException failure;
 
     public FrameChannel(Socket socket, Consumer<String> messageHandler) throws IOException {
-        this(socket, messageHandler, DEFAULT_ACKNOWLEDGEMENT_TIMEOUT_MILLIS);
+        this(socket, messageHandler, () -> { }, DEFAULT_ACKNOWLEDGEMENT_TIMEOUT_MILLIS);
     }
 
     public FrameChannel(Socket socket, Consumer<String> messageHandler, int acknowledgementTimeoutMillis)
             throws IOException {
+        this(socket, messageHandler, () -> { }, acknowledgementTimeoutMillis);
+    }
+
+    /** closeHandler runs once when the connection ends, after every message already received. */
+    public FrameChannel(Socket socket, Consumer<String> messageHandler, Runnable closeHandler) throws IOException {
+        this(socket, messageHandler, closeHandler, DEFAULT_ACKNOWLEDGEMENT_TIMEOUT_MILLIS);
+    }
+
+    public FrameChannel(Socket socket, Consumer<String> messageHandler, Runnable closeHandler,
+                        int acknowledgementTimeoutMillis) throws IOException {
         Validator.requireNonNull(socket, "Socket");
         Validator.requireNonNull(messageHandler, "Message handler");
+        Validator.requireNonNull(closeHandler, "Close handler");
         Validator.requirePositive(acknowledgementTimeoutMillis, "Acknowledgement timeout");
 
         this.socket = socket;
         this.messageHandler = messageHandler;
+        this.closeHandler = closeHandler;
         this.acknowledgementTimeoutMillis = acknowledgementTimeoutMillis;
         this.input = new PushbackInputStream(socket.getInputStream(), 1);
         this.output = socket.getOutputStream();
@@ -214,12 +227,22 @@ public final class FrameChannel implements AutoCloseable {
             // Wake a sender immediately; ensureOpen will report the recorded failure.
             replies.offer(CLOSED);
         }
+        // Queued after the messages already accepted, so it always runs last.
+        handlers.execute(this::runCloseHandler);
         // Already accepted messages must still reach their handlers after the socket closes.
         handlers.shutdown();
         try {
             socket.close();
         } catch (IOException exception) {
             cause.addSuppressed(exception);
+        }
+    }
+
+    private void runCloseHandler() {
+        try {
+            closeHandler.run();
+        } catch (RuntimeException ignored) {
+            // The connection is already closed; a failing close handler cannot change that.
         }
     }
 }
