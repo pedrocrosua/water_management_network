@@ -95,6 +95,29 @@ services:
     command: ["--monitor.host=ws2-monitor", "--monitor.port=6000",
               "--spring.kafka.bootstrap-servers=kafka:9092"]
 
+  # Interactive: run each one in its own terminal with "docker compose run --rm fo1"
+  fo1:
+    build:
+      context: .
+      args:
+        MODULE: wm-field-operator
+        APP_NAME: WM_FO
+    depends_on: [kafka]
+    stdin_open: true
+    tty: true
+    command: ["--operator.id=FO-001", "--spring.kafka.bootstrap-servers=kafka:9092"]
+
+  fo2:
+    build:
+      context: .
+      args:
+        MODULE: wm-field-operator
+        APP_NAME: WM_FO
+    depends_on: [kafka]
+    stdin_open: true
+    tty: true
+    command: ["--operator.id=FO-002", "--spring.kafka.bootstrap-servers=kafka:9092"]
+
   # Build tool: nothing is compiled on the host.
   # Runs with the host user's id so target/ is not left owned by root. Downloaded
   # dependencies are cached in ./.m2 (ignored by git): a named volume would be created
