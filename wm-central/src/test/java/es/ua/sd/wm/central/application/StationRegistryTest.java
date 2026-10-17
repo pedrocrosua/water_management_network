@@ -24,7 +24,7 @@ class StationRegistryTest {
         repository.save(new Station("WS-02", "Jardines", StationState.AVAILABLE, false));
         repository.save(new Station("WS-01", "Canalejas", StationState.IRRIGATING, false));
 
-        StationRegistry registry = new StationRegistry(repository, publisher);
+        StationRegistry registry = new StationRegistry(repository, List.of(publisher));
 
         assertThat(registry.findAll())
                 .extracting(Station::id, Station::state)
@@ -37,7 +37,7 @@ class StationRegistryTest {
     void theDisconnectedStateIsAlsoSavedInTheDatabase() {
         repository.save(new Station("WS-01", "Canalejas", StationState.AVAILABLE, false));
 
-        new StationRegistry(repository, publisher);
+        new StationRegistry(repository, List.of(publisher));
 
         assertThat(repository.stations.get("WS-01").state()).isEqualTo(StationState.DISCONNECTED);
     }
@@ -46,7 +46,7 @@ class StationRegistryTest {
     void outOfServiceOrderSurvivesARestart() {
         repository.save(new Station("WS-01", "Canalejas", StationState.OUT_OF_SERVICE, true));
 
-        StationRegistry registry = new StationRegistry(repository, publisher);
+        StationRegistry registry = new StationRegistry(repository, List.of(publisher));
 
         assertThat(registry.findAll().getFirst().outOfService()).isTrue();
     }
@@ -55,9 +55,59 @@ class StationRegistryTest {
     void everyLoadedStationIsAnnouncedToThePanel() {
         repository.save(new Station("WS-01", "Canalejas", StationState.AVAILABLE, false));
 
-        new StationRegistry(repository, publisher);
+        new StationRegistry(repository, List.of(publisher));
 
         assertThat(published).extracting(Station::id).containsExactly("WS-01");
+    }
+
+    @Test
+    void knownStationThatConnectsBecomesAvailable() {
+        repository.save(new Station("WS-01", "Canalejas", StationState.DISCONNECTED, false));
+        StationRegistry registry = new StationRegistry(repository, List.of(publisher));
+
+        Station station = registry.connect("WS-01", "Canalejas");
+
+        assertThat(station.state()).isEqualTo(StationState.AVAILABLE);
+        assertThat(repository.stations.get("WS-01").state()).isEqualTo(StationState.AVAILABLE);
+    }
+
+    @Test
+    void blockedStationThatConnectsStaysOutOfService() {
+        repository.save(new Station("WS-01", "Canalejas", StationState.DISCONNECTED, true));
+        StationRegistry registry = new StationRegistry(repository, List.of(publisher));
+
+        assertThat(registry.connect("WS-01", "Canalejas").state()).isEqualTo(StationState.OUT_OF_SERVICE);
+    }
+
+    @Test
+    void unknownStationThatConnectsIsRegistered() {
+        StationRegistry registry = new StationRegistry(repository, List.of(publisher));
+
+        registry.connect("WS-09", "New park");
+
+        assertThat(repository.stations.get("WS-09"))
+                .isEqualTo(new Station("WS-09", "New park", StationState.AVAILABLE, false));
+    }
+
+    @Test
+    void disconnectedStationIsShownAsDisconnectedAndAnnounced() {
+        StationRegistry registry = new StationRegistry(repository, List.of(publisher));
+        registry.connect("WS-01", "Canalejas");
+
+        registry.disconnect("WS-01");
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.DISCONNECTED);
+        assertThat(published.getLast().state()).isEqualTo(StationState.DISCONNECTED);
+    }
+
+    @Test
+    void disconnectingAnUnknownStationDoesNothing() {
+        StationRegistry registry = new StationRegistry(repository, List.of(publisher));
+
+        registry.disconnect("WS-77");
+
+        assertThat(registry.find("WS-77")).isEmpty();
+        assertThat(published).isEmpty();
     }
 
     private static final class FakeRepository implements StationRepository {

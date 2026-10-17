@@ -31,6 +31,7 @@ class CentralApplicationTest {
     @DynamicPropertySource
     static void useTemporaryDatabase(DynamicPropertyRegistry properties) {
         properties.add("db.path", () -> databaseFolder.resolve("test.db").toString());
+        properties.add("socket.port", () -> 0);
     }
 
     @Value("${local.server.port}")

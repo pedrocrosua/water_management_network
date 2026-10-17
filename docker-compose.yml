@@ -40,9 +40,10 @@ services:
     container_name: WM_Central
     ports:
       - "8080:8080"   # monitoring panel
+      - "5000:5000"   # socket server for the WM_WS_M
     volumes:
       - wm-data:/data # the SQLite file survives restarts and rebuilds
-    command: ["--db.path=/data/wm.db"]
+    command: ["--socket.port=5000", "--db.path=/data/wm.db"]
 
   # Build tool: nothing is compiled on the host.
   # Runs with the host user's id so target/ is not left owned by root. Downloaded

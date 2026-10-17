@@ -19,6 +19,26 @@ public record Station(String id, String location, StationState state, boolean ou
         Validator.requireNonNull(state, "State");
     }
 
+    /** A station WM_Central has never seen before. It is disconnected until its Monitor connects. */
+    public static Station register(String id, String location) {
+        return new Station(id, location, StationState.DISCONNECTED, false);
+    }
+
+    /** Its Monitor has authenticated: available, unless WM_Central had blocked it. */
+    public Station connected() {
+        return withState(outOfService ? StationState.OUT_OF_SERVICE : StationState.AVAILABLE);
+    }
+
+    /** Its Monitor is gone: WM_Central can no longer know the real state. */
+    public Station disconnected() {
+        return withState(StationState.DISCONNECTED);
+    }
+
+    /** The station reported where it is installed. */
+    public Station locatedAt(String newLocation) {
+        return new Station(id, newLocation, state, outOfService);
+    }
+
     /** Same station with another state. Records are immutable, so a new one is returned. */
     public Station withState(StationState newState) {
         return new Station(id, location, newState, outOfService);
