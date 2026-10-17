@@ -2,11 +2,13 @@ package es.ua.sd.wm.operator.infrastructure.console;
 
 import es.ua.sd.wm.common.event.OperatorNotification;
 import es.ua.sd.wm.common.event.StationStatus;
+import es.ua.sd.wm.common.event.Telemetry;
 import es.ua.sd.wm.operator.application.IrrigationRequests;
 import es.ua.sd.wm.operator.domain.StationBoard;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Locale;
 
 /** Text menu of the operator: list the stations and request irrigations. */
 public class OperatorConsole {
@@ -43,6 +45,12 @@ public class OperatorConsole {
     /** Called from the Kafka thread whenever WM_Central reports progress of a request. */
     public void show(OperatorNotification notification) {
         print(">>> [" + notification.type() + "] " + notification.message());
+    }
+
+    /** Called from the Kafka thread every second while one of this operator's irrigations lasts. */
+    public void showTelemetry(Telemetry telemetry) {
+        print(String.format(Locale.ROOT, "    %s: %.1f L/min, %.1f L, %d s", telemetry.stationId(),
+                telemetry.flowLitresPerMinute(), telemetry.accumulatedLitres(), telemetry.elapsedSeconds()));
     }
 
     private void listStations() {
