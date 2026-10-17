@@ -1,16 +1,20 @@
 package es.ua.sd.wm.engine.infrastructure.config;
 
 import es.ua.sd.wm.engine.application.MonitorLink;
-import es.ua.sd.wm.engine.application.StationCommandHandler;
+import es.ua.sd.wm.engine.application.IrrigationController;
 import es.ua.sd.wm.engine.domain.LeakSensor;
 import es.ua.sd.wm.engine.domain.Valve;
 import es.ua.sd.wm.engine.infrastructure.console.EngineConsole;
 import es.ua.sd.wm.engine.infrastructure.kafka.KafkaStationEventPublisher;
 import es.ua.sd.wm.engine.infrastructure.kafka.StationCommandListener;
 import es.ua.sd.wm.engine.infrastructure.monitor.SocketMonitorConnection;
+import es.ua.sd.wm.engine.infrastructure.sensor.SimulatedFlowMeter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.time.Duration;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
@@ -34,16 +38,25 @@ class EngineConfiguration {
     }
 
     @Bean
-    StationCommandHandler stationCommandHandler(Valve valve, LeakSensor sensor,
-                                                KafkaTemplate<String, String> kafka, JsonMapper json) {
-        return new StationCommandHandler(valve, sensor, new KafkaStationEventPublisher(kafka, json));
+    IrrigationController irrigationController(Valve valve, LeakSensor sensor,
+                                              KafkaTemplate<String, String> kafka, JsonMapper json) {
+        return new IrrigationController(valve, sensor, new SimulatedFlowMeter(),
+                new KafkaStationEventPublisher(kafka, json));
+    }
+
+    /** Moves the irrigation forward once per second (telemetry and time limit). */
+    @Bean(destroyMethod = "shutdownNow")
+    ScheduledExecutorService irrigationClock(IrrigationController irrigations) {
+        ScheduledExecutorService clock = Executors.newSingleThreadScheduledExecutor();
+        clock.scheduleAtFixedRate(irrigations::tick, 1, 1, TimeUnit.SECONDS);
+        return clock;
     }
 
     /** stop() leaves the consumer group cleanly when the application shuts down. */
     @Bean(destroyMethod = "stop")
     StationCommandListener stationCommandListener(ConsumerFactory<String, String> consumerFactory,
-                                                  StationCommandHandler handler, JsonMapper json) {
-        return new StationCommandListener(consumerFactory, handler::execute, json);
+                                                  IrrigationController irrigations, JsonMapper json) {
+        return new StationCommandListener(consumerFactory, irrigations::execute, json);
     }
 
     /**
@@ -63,9 +76,9 @@ class EngineConfiguration {
 
     /** The menu runs on its own thread; the connection loop keeps the main thread alive. */
     @Bean
-    ApplicationRunner startEngine(LeakSensor sensor, MonitorLink link) {
+    ApplicationRunner startEngine(LeakSensor sensor, IrrigationController irrigations, MonitorLink link) {
         return arguments -> {
-            EngineConsole console = new EngineConsole(sensor,
+            EngineConsole console = new EngineConsole(sensor, irrigations,
                     new BufferedReader(new InputStreamReader(System.in)), System.out);
             Thread.ofPlatform().daemon().name("engine-console").start(console::run);
             link.run();
