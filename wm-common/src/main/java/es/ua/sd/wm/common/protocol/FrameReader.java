@@ -30,9 +30,11 @@ public final class FrameReader {
     /** Returns the next complete frame, or null if the stream ends before a new frame starts. */
     public byte[] readFrame() throws IOException {
         int firstByte = input.read();
+        // Connection ended
         if (firstByte == -1) {
             return null;
         }
+        // If it's not STX ==> connection is corrupted ==> Exception
         if (firstByte != FrameCodec.START_OF_TEXT) {
             throw new IOException("Frame must start with STX");
         }
