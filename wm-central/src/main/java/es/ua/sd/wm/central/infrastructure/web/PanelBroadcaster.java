@@ -11,8 +11,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * Pushes station changes to every open panel in the browser, using Server-Sent Events:
- * an HTTP connection that stays open and through which the server keeps sending data.
+ * Envía a cada panel abierto en el navegador los cambios de las estaciones y la telemetría de
+ * los riegos, con Server-Sent Events: una conexión HTTP que se queda abierta y por la que el
+ * servidor sigue enviando datos.
  */
 @Component
 public class PanelBroadcaster implements StationChangePublisher, IrrigationProgressPublisher {
@@ -33,7 +34,7 @@ public class PanelBroadcaster implements StationChangePublisher, IrrigationProgr
         }
     }
 
-    /** Flow, water and time of an irrigation, once per second. The panel shows it on the card. */
+    /** Caudal, agua y tiempo de un riego, una vez por segundo. El panel lo muestra en la tarjeta. */
     @Override
     public void publish(Telemetry telemetry) {
         for (SseEmitter panel : openPanels) {
@@ -49,7 +50,7 @@ public class PanelBroadcaster implements StationChangePublisher, IrrigationProgr
         try {
             panel.send(SseEmitter.event().name(eventName).data(data));
         } catch (IOException | IllegalStateException closedPanel) {
-            // The browser tab was closed: forget it.
+            // Se cerró la pestaña del navegador: se olvida.
             openPanels.remove(panel);
         }
     }

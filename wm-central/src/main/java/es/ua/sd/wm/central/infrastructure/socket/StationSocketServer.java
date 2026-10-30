@@ -12,13 +12,15 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
 /**
- * Socket server where every WM_WS_M connects. One thread accepts connections; each connection
- * becomes a {@link MonitorSession}.
+ * Servidor de sockets al que se conecta cada WM_WS_M. Un hilo acepta las conexiones y cada una
+ * se convierte en una {@link MonitorSession}.
+ *
+ * <p>Spring llama a start() al arrancar y a stop() al apagar (SmartLifecycle).
  */
 @Component
 public class StationSocketServer implements SmartLifecycle {
 
-    /** A Monitor sends HEALTH every second: 3 seconds of silence means it is gone. */
+    /** Un Monitor envía HEALTH cada segundo: 3 segundos de silencio significan que se ha ido. */
     static final int SILENCE_TIMEOUT_MILLIS = 3000;
 
     private static final Logger log = LoggerFactory.getLogger(StationSocketServer.class);
@@ -52,7 +54,7 @@ public class StationSocketServer implements SmartLifecycle {
         try {
             serverSocket.close();
         } catch (IOException ignored) {
-            // Already closed.
+            // Ya estaba cerrado.
         }
         sessions.closeAll();
     }
@@ -62,7 +64,7 @@ public class StationSocketServer implements SmartLifecycle {
         return serverSocket != null && !serverSocket.isClosed();
     }
 
-    /** The real port; useful when the configured one is 0 (any free port, used by tests). */
+    /** El puerto real; útil cuando el configurado es 0 (cualquier puerto libre, en los tests). */
     public int getPort() {
         return serverSocket.getLocalPort();
     }
@@ -72,6 +74,8 @@ public class StationSocketServer implements SmartLifecycle {
             try {
                 Socket socket = serverSocket.accept();
                 socket.setSoTimeout(SILENCE_TIMEOUT_MILLIS);
+                // No se guarda: la sesión vive en los hilos de su FrameChannel y, tras el AUTH,
+                // queda registrada en MonitorSessions.
                 new MonitorSession(socket, registry, sessions);
             } catch (IOException exception) {
                 if (isRunning()) {

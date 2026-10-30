@@ -4,7 +4,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Sends any message to a Kafka topic as JSON text. */
+/** Envía cualquier mensaje a un topic de Kafka como texto JSON. */
 @Component
 class KafkaPublisher {
 
@@ -16,7 +16,7 @@ class KafkaPublisher {
         this.json = json;
     }
 
-    /** The key decides the partition: messages with the same key always keep their order. */
+    /** La clave decide la partición: los mensajes con la misma clave mantienen su orden. */
     void publish(String topic, String key, Object message) {
         kafka.send(topic, key, json.writeValueAsString(message));
     }

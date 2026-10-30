@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/** Plain unit test: in-memory fakes instead of SQLite and the web panel. */
+/** Test unitario: dobles en memoria en lugar de SQLite y del panel web. */
 class StationRegistryTest {
 
     private final FakeRepository repository = new FakeRepository();

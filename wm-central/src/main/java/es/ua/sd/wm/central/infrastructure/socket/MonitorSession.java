@@ -16,11 +16,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Conversation with one connected WM_WS_M.
+ * Conversación con un WM_WS_M conectado.
  *
- * <p>The first message must be AUTH. After that the Monitor sends HEALTH every second; the
- * socket's read timeout closes the session if nothing arrives for a while. LEAK and
- * LEAK_CLEARED always refer to the station that authenticated on this connection.
+ * <p>El primer mensaje tiene que ser AUTH. Después el Monitor envía HEALTH cada segundo; si no
+ * llega nada durante un rato, el timeout de lectura del socket cierra la sesión. LEAK y
+ * LEAK_CLEARED siempre se refieren a la estación que se autenticó en esta conexión.
+ *
+ * <p>Los mensajes llegan por el hilo de entrega de FrameChannel. Si un mensaje no se puede
+ * leer, se lanza una excepción y FrameChannel cierra la conexión.
  */
 final class MonitorSession {
 
@@ -29,12 +32,14 @@ final class MonitorSession {
     private final StationRegistry registry;
     private final MonitorSessions sessions;
     private final String remoteAddress;
-    // Replies are sent one by one, in order, without blocking the thread that reads messages.
+    // Las respuestas salen de una en una, en orden, desde un hilo propio: quien llama
+    // (por ejemplo, el listener de Kafka a través de sendState) no espera al ACK.
     private final ExecutorService outbox = Executors.newSingleThreadExecutor();
-    // FrameChannel starts reading inside its own constructor, so a message can arrive before
-    // the channel field below is ready. Replies wait for this future instead.
+    // FrameChannel empieza a leer en su constructor: puede llegar un mensaje antes de guardarlo.
+    // Las respuestas esperan a este future.
     private final CompletableFuture<FrameChannel> channelReady = new CompletableFuture<>();
 
+    // Los escribe el hilo de los mensajes; sendState los lee desde otros hilos.
     private volatile String claimedStationId;
     private volatile boolean authenticated;
 
@@ -94,16 +99,19 @@ final class MonitorSession {
             return;
         }
 
-        // Register before closing an older session, so the old one knows it is no longer current.
+        // Primero se registra esta sesión y después se cierra la anterior: así la anterior ya no
+        // es la actual y, al cerrarse, no desconecta la estación.
         claimedStationId = stationId;
         MonitorSession previous = sessions.register(stationId, this);
-        if (previous != null && previous != this) {
+        if (previous != null && previous != this) { // es this si llega otro AUTH por la misma conexión
             log.info("{} reconnected; closing its previous session", stationId);
             previous.close();
         }
 
         Station station = registry.connect(stationId, location);
         reply(SocketMessage.of(MessageType.AUTH_OK, station.id(), station.state().name()));
+        // Después de AUTH_OK: así se descarta el STATE que publica connect(), y el Monitor
+        // recibe primero AUTH_OK y una sola vez.
         authenticated = true;
         log.info("{} ({}) authenticated -> {}", stationId, location, station.state());
     }
@@ -123,7 +131,7 @@ final class MonitorSession {
         try {
             outbox.execute(() -> send(message));
         } catch (RejectedExecutionException sessionAlreadyClosed) {
-            // Nothing to do: the Monitor is gone.
+            // Nada que hacer: el Monitor ya no está.
         }
     }
 
@@ -131,7 +139,7 @@ final class MonitorSession {
         try {
             channelReady.join().send(message.format());
         } catch (IOException failed) {
-            // FrameChannel closes itself on failure, which triggers onClosed().
+            // FrameChannel se cierra solo al fallar, y eso llama a onClosed().
             log.warn("Could not send {} to {}: {}", message.type(), claimedStationId, failed.getMessage());
         }
     }

@@ -5,7 +5,7 @@ import es.ua.sd.wm.common.event.StationCommand;
 import es.ua.sd.wm.common.event.Topics;
 import org.springframework.stereotype.Component;
 
-/** Orders go to every Engine; each one keeps those whose key is its own station id. */
+/** Las órdenes llegan a todos los Engines; cada uno se queda con las que llevan su id de estación como clave. */
 @Component
 class KafkaStationCommandSender implements StationCommandSender {
 

@@ -11,8 +11,8 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Reads irrigation requests. Every WM_Central instance uses the same group ("central"), so if
- * there were several, Kafka would share the requests between them (competing consumers).
+ * Lee las peticiones de riego. Todas las instancias de WM_Central usan el mismo grupo
+ * ("central"): si hubiera varias, Kafka les repartiría las peticiones (consumidores que compiten).
  */
 @Component
 class IrrigationRequestListener {
@@ -27,7 +27,7 @@ class IrrigationRequestListener {
         this.json = json;
     }
 
-    @KafkaListener(topics = Topics.IRRIGATION_REQUESTS, groupId = "central")
+    @KafkaListener(topics = Topics.IRRIGATION_REQUESTS, groupId = KafkaTopics.CENTRAL_GROUP)
     void receive(String message) {
         IrrigationRequest request;
         try {

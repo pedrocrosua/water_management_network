@@ -34,7 +34,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** The irrigation request flow with in-memory fakes instead of Kafka and SQLite. */
+/** El flujo de una petición de riego, con dobles en memoria en lugar de Kafka y SQLite. */
 class IrrigationServiceTest {
 
     private final Map<String, Operator> operators = new HashMap<>();

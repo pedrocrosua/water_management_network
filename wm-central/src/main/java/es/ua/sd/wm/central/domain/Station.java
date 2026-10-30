@@ -4,12 +4,12 @@ import es.ua.sd.wm.common.model.StationState;
 import es.ua.sd.wm.common.validation.Validator;
 
 /**
- * A Watering Station as WM_Central knows it.
+ * Una Watering Station tal como la conoce WM_Central.
  *
- * @param id           unique id, for example "WS-01"
- * @param location     park or garden where it is installed
- * @param state        current state, decided only by WM_Central
- * @param outOfService true when WM_Central blocked it; survives restarts
+ * @param id           id único, por ejemplo "WS-01"
+ * @param location     parque o jardín donde está instalada
+ * @param state        estado actual; solo lo decide WM_Central
+ * @param outOfService true si WM_Central la bloqueó; se conserva al reiniciar
  */
 public record Station(String id, String location, StationState state, boolean outOfService) {
 
@@ -19,48 +19,53 @@ public record Station(String id, String location, StationState state, boolean ou
         Validator.requireNonNull(state, "State");
     }
 
-    /** A station WM_Central has never seen before. It is disconnected until its Monitor connects. */
+    /** Una estación que WM_Central no había visto nunca. Está desconectada hasta que conecte su Monitor. */
     public static Station register(String id, String location) {
         return new Station(id, location, StationState.DISCONNECTED, false);
     }
 
-    /** Its Monitor has authenticated: available, unless WM_Central had blocked it. */
+    /** Su Monitor se ha autenticado. */
     public Station connected() {
-        return withState(outOfService ? StationState.OUT_OF_SERVICE : StationState.AVAILABLE);
+        return ready();
     }
 
-    /** Its Monitor is gone: WM_Central can no longer know the real state. */
+    /** Su Monitor ya no está: WM_Central no puede saber su estado real. */
     public Station disconnected() {
         return withState(StationState.DISCONNECTED);
     }
 
-    /** Its Engine opened the valve. Only an available station can start irrigating. */
+    /** Su Engine abrió la válvula. Solo empieza a regar una estación disponible. */
     public Station irrigating() {
         return state == StationState.AVAILABLE ? withState(StationState.IRRIGATING) : this;
     }
 
-    /** Its Engine closed the valve. Only a station that was irrigating becomes available again. */
+    /** Su Engine cerró la válvula. Solo cambia la estación que estaba regando. */
     public Station irrigationEnded() {
-        return state == StationState.IRRIGATING ? connected() : this;
+        return state == StationState.IRRIGATING ? ready() : this;
     }
 
-    /** Its Engine reported a fault: red on the panel. */
+    /** Su Engine avisó de una avería: rojo en el panel. */
     public Station leaking() {
         return withState(StationState.LEAK);
     }
 
-    /** The fault is fixed. Only a station that was leaking changes. */
+    /** La avería está reparada. Solo cambia la estación que tenía la fuga. */
     public Station leakCleared() {
-        return state == StationState.LEAK ? connected() : this;
+        return state == StationState.LEAK ? ready() : this;
     }
 
-    /** The station reported where it is installed. */
+    /** La estación ha enviado dónde está instalada. */
     public Station locatedAt(String newLocation) {
         return new Station(id, newLocation, state, outOfService);
     }
 
-    /** Same station with another state. Records are immutable, so a new one is returned. */
-    public Station withState(StationState newState) {
+    /** Lista para regar: disponible, o fuera de servicio si WM_Central la había bloqueado. */
+    private Station ready() {
+        return withState(outOfService ? StationState.OUT_OF_SERVICE : StationState.AVAILABLE);
+    }
+
+    /** La misma estación con otro estado. Los records no se modifican: se crea uno nuevo. */
+    private Station withState(StationState newState) {
         return new Station(id, location, newState, outOfService);
     }
 }

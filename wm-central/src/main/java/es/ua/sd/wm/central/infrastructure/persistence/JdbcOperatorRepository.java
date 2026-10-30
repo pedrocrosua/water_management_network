@@ -6,7 +6,7 @@ import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Reads operators from the SQLite "operators" table. */
+/** Lee los operarios de la tabla "operators" de SQLite. */
 @Repository
 class JdbcOperatorRepository implements OperatorRepository {
 

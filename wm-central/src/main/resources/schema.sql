@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS operators (
     active INTEGER NOT NULL DEFAULT 1
 );
 
+-- last_seen_at aún no se usa.
 CREATE TABLE IF NOT EXISTS stations (
     id             TEXT PRIMARY KEY,
     location       TEXT    NOT NULL,
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS irrigations (
     end_reason    TEXT
 );
 
+-- Aún no se usa: preparada para los casos de uso pendientes.
 CREATE TABLE IF NOT EXISTS audit_events (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     ts          TEXT NOT NULL,

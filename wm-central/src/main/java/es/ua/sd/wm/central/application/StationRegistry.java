@@ -9,21 +9,20 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.UnaryOperator;
-import org.springframework.stereotype.Service;
 
 /**
- * Keeps the current state of every station in memory: the single source of truth.
+ * Guarda en memoria el estado actual de cada estación: es la única fuente de verdad.
  *
- * <p>On start-up it loads the stations from the database and marks all of them as
- * DISCONNECTED, because WM_Central cannot know their real state until each one connects.
+ * <p>Al arrancar carga las estaciones de la base de datos y las marca todas como
+ * DISCONNECTED, porque WM_Central no sabe su estado real hasta que cada una se conecta.
  *
- * <p>Every change goes through {@link #change}, which updates one station at a time: two
- * changes to the same station never mix, while different stations change in parallel.
+ * <p>Todo cambio pasa por {@link #change}, que actualiza una estación cada vez: dos cambios de
+ * la misma estación nunca se mezclan, y estaciones distintas cambian en paralelo.
  */
-@Service
 public class StationRegistry {
 
     private final StationRepository repository;
+    // A quién se avisa de cada cambio: el panel web, los Monitores conectados y Kafka.
     private final List<StationChangePublisher> changePublishers;
     private final Map<String, Station> stationsById = new ConcurrentHashMap<>();
 
@@ -31,6 +30,16 @@ public class StationRegistry {
         this.repository = repository;
         this.changePublishers = changePublishers;
         loadStationsAsDisconnected();
+    }
+
+    /** Al arrancar, cada estación queda desconectada: en memoria, en SQLite y para los avisados. */
+    private void loadStationsAsDisconnected() {
+        for (Station storedStation : repository.findAll()) {
+            Station station = storedStation.disconnected();
+            repository.save(station);
+            stationsById.put(station.id(), station);
+            changePublishers.forEach(publisher -> publisher.publish(station));
+        }
     }
 
     public List<Station> findAll() {
@@ -43,7 +52,7 @@ public class StationRegistry {
         return Optional.ofNullable(stationsById.get(stationId));
     }
 
-    /** A Monitor authenticated. Unknown stations are registered with the location they report. */
+    /** Un Monitor se ha autenticado. Una estación desconocida se registra con la ubicación que envía. */
     public Station connect(String stationId, String location) {
         return change(stationId, current -> {
             Station station = current != null ? current.locatedAt(location) : Station.register(stationId, location);
@@ -51,52 +60,50 @@ public class StationRegistry {
         });
     }
 
-    /** The station's Monitor is no longer connected. */
+    /** El Monitor de la estación ya no está conectado. */
     public void disconnect(String stationId) {
-        change(stationId, current -> current == null ? null : current.disconnected());
+        changeExisting(stationId, Station::disconnected);
     }
 
-    /** The station's Engine opened its valve. Returns the station, irrigating only if it was available. */
+    /** El Engine abrió la válvula. Devuelve la estación, que solo pasa a regar si estaba disponible. */
     public Optional<Station> startIrrigation(String stationId) {
-        return Optional.ofNullable(change(stationId, current -> current == null ? null : current.irrigating()));
+        return Optional.ofNullable(changeExisting(stationId, Station::irrigating));
     }
 
-    /** The station's Engine closed its valve. */
+    /** El Engine cerró la válvula. */
     public void endIrrigation(String stationId) {
-        change(stationId, current -> current == null ? null : current.irrigationEnded());
+        changeExisting(stationId, Station::irrigationEnded);
     }
 
-    /** The station's Monitor detected a fault in its Engine. */
+    /** El Monitor detectó una avería en su Engine. */
     public void reportLeak(String stationId) {
-        change(stationId, current -> current == null ? null : current.leaking());
+        changeExisting(stationId, Station::leaking);
     }
 
-    /** The station's Monitor reports the fault is fixed. */
+    /** El Monitor avisa de que la avería está reparada. */
     public void clearLeak(String stationId) {
-        change(stationId, current -> current == null ? null : current.leakCleared());
+        changeExisting(stationId, Station::leakCleared);
+    }
+
+    /** Cambia una estación que ya existe. Si no existe, no hace nada y devuelve null. */
+    private Station changeExisting(String stationId, UnaryOperator<Station> update) {
+        return change(stationId, current -> current == null ? null : update.apply(current));
     }
 
     private Station change(String stationId, UnaryOperator<Station> update) {
-        // compute() locks only this station's entry while the update and the save run.
+        // compute() bloquea solo la entrada de esta estación mientras se actualiza y se guarda.
+        // Si se devuelve null y la estación no existía, no se crea ninguna entrada.
         Station changed = stationsById.compute(stationId, (id, current) -> {
             Station updated = update.apply(current);
             if (updated != null && !updated.equals(current)) {
-                repository.save(updated);
+                repository.save(updated); // en SQLite solo se escribe si ha cambiado
             }
             return updated;
         });
         if (changed != null) {
+            // Se avisa aunque no haya cambiado: repetir el estado no hace daño.
             changePublishers.forEach(publisher -> publisher.publish(changed));
         }
         return changed;
-    }
-
-    private void loadStationsAsDisconnected() {
-        for (Station storedStation : repository.findAll()) {
-            Station station = storedStation.disconnected();
-            repository.save(station);
-            stationsById.put(station.id(), station);
-            changePublishers.forEach(publisher -> publisher.publish(station));
-        }
     }
 }

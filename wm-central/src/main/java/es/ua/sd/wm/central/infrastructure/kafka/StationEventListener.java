@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Reads what the Engines report. The "type" field of the JSON says which kind of event it is. */
+/** Lee lo que informan los Engines. El campo "type" del JSON indica el tipo de evento. */
 @Component
 class StationEventListener {
 
@@ -27,7 +27,7 @@ class StationEventListener {
         this.json = json;
     }
 
-    @KafkaListener(topics = Topics.STATION_TELEMETRY, groupId = "central")
+    @KafkaListener(topics = Topics.STATION_TELEMETRY, groupId = KafkaTopics.CENTRAL_GROUP)
     void receive(String message) {
         StationEvent event;
         try {

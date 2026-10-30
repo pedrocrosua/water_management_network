@@ -9,7 +9,7 @@ import java.util.List;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Stores stations in the SQLite "stations" table using plain SQL. */
+/** Guarda las estaciones en la tabla "stations" de SQLite, con SQL escrito a mano. */
 @Repository
 class JdbcStationRepository implements StationRepository {
 

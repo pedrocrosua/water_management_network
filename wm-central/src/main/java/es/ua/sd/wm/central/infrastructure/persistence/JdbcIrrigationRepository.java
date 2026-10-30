@@ -5,7 +5,7 @@ import es.ua.sd.wm.central.domain.IrrigationRecord;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Writes finished irrigations into the SQLite "irrigations" table. Dates are ISO-8601 text. */
+/** Guarda los riegos terminados en la tabla "irrigations" de SQLite. Las fechas van como texto ISO-8601. */
 @Repository
 class JdbcIrrigationRepository implements IrrigationRepository {
 

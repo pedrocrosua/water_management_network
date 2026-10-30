@@ -22,8 +22,8 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * Starts the real WM_Central and connects fake Monitors to its socket server.
- * Each test uses its own station id so they do not affect each other.
+ * Arranca el WM_Central real y conecta Monitores falsos a su servidor de sockets.
+ * Cada test usa su propio id de estación para no afectar a los demás.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @EmbeddedKafka(bootstrapServersProperty = "spring.kafka.bootstrap-servers")
@@ -154,7 +154,7 @@ class MonitorConnectionTest {
         return registry.find(stationId).orElseThrow().state();
     }
 
-    /** Plays the role of a WM_WS_M: a real socket with the real frame protocol. */
+    /** Hace de WM_WS_M: un socket real con el protocolo de tramas real. */
     private final class FakeMonitor implements AutoCloseable {
 
         private final BlockingQueue<String> received = new LinkedBlockingQueue<>();

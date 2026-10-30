@@ -2,7 +2,7 @@ package es.ua.sd.wm.central.application.port.out;
 
 import es.ua.sd.wm.common.event.Telemetry;
 
-/** Shows how an irrigation is going (flow, water, time) while it lasts. Nothing is stored. */
+/** Muestra cómo va un riego (caudal, agua, tiempo) mientras dura. No se guarda nada. */
 public interface IrrigationProgressPublisher {
 
     void publish(Telemetry telemetry);

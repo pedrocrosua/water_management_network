@@ -1,4 +1,4 @@
-// Shows every station as a coloured card and keeps it up to date with the server's live stream.
+// Muestra cada estación como una tarjeta de color y la mantiene al día con el flujo en directo del servidor.
 
 const STATE_LABELS = {
     AVAILABLE: 'Disponible',
@@ -11,26 +11,33 @@ const STATE_LABELS = {
 const stationsContainer = document.getElementById('stations');
 const connectionText = document.getElementById('connection');
 
+// Prefijo en el id del HTML: el id de una estación nunca coincide con otro elemento de la página.
+function cardId(stationId) {
+    return 'station-' + stationId;
+}
+
 function showStation(station) {
-    let card = document.getElementById(station.id);
+    let card = document.getElementById(cardId(station.id));
     if (!card) {
         card = document.createElement('article');
-        card.id = station.id;
+        card.id = cardId(station.id);
         stationsContainer.appendChild(card);
     }
 
-    card.className = 'station ' + station.state;
-    // textContent (not innerHTML) so data coming from a station can never inject HTML.
+    card.dataset.state = station.state;
+    card.className = 'station ' + station.state; // la clase CSS da el color
+    // textContent (no innerHTML): los datos de una estación nunca pueden inyectar HTML.
+    // replaceChildren borra también la línea de progreso; vuelve con la siguiente telemetría.
     card.replaceChildren(
         textElement('h2', station.id),
         textElement('p', station.location),
         textElement('p', STATE_LABELS[station.state], 'state-label'));
 }
 
-// While a station irrigates, its card shows who asked for it, the flow, the water and the time.
+// Mientras una estación riega, su tarjeta muestra quién lo pidió, el caudal, el agua y el tiempo.
 function showTelemetry(telemetry) {
-    const card = document.getElementById(telemetry.stationId);
-    if (!card || !card.classList.contains('IRRIGATING')) {
+    const card = document.getElementById(cardId(telemetry.stationId));
+    if (!card || card.dataset.state !== 'IRRIGATING') {
         return;
     }
     const text = 'Operario ' + (telemetry.operatorId ?? '-') + ' · '

@@ -22,7 +22,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Starts the real WM_Central on a random port, with a fresh SQLite file. */
+/** Arranca el WM_Central real en un puerto libre, con un fichero SQLite nuevo. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @EmbeddedKafka(bootstrapServersProperty = "spring.kafka.bootstrap-servers")
 class CentralApplicationTest {
@@ -57,7 +57,7 @@ class CentralApplicationTest {
     void liveStreamStartsBySendingEveryStation() throws Exception {
         HttpResponse<Stream<String>> response = http.send(request("/api/stations/stream"), HttpResponse.BodyHandlers.ofLines());
 
-        // The stream never ends: read only the first three station events.
+        // El flujo no termina nunca: solo se leen los tres primeros eventos de estación.
         try (Stream<String> lines = response.body()) {
             List<String> stationData = lines.filter(line -> line.startsWith("data:")).limit(3).toList();
             assertThat(stationData).hasSize(3);

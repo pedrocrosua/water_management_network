@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-/** HTTP endpoints used by the monitoring panel. */
+/** Endpoints HTTP que usa el panel de monitorización. */
 @RestController
 @RequestMapping("/api/stations")
 class StationController {
@@ -24,17 +24,17 @@ class StationController {
         this.broadcaster = broadcaster;
     }
 
-    /** Current state of every station, once. */
+    /** Estado actual de todas las estaciones, una vez. */
     @GetMapping
     List<StationView> findAll() {
         return registry.findAll().stream().map(StationView::from).toList();
     }
 
-    /** Opens a live stream: every station now, and then each change as it happens. */
+    /** Abre un flujo en directo: primero todas las estaciones y después cada cambio según ocurre. */
     @GetMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     SseEmitter stream() {
         SseEmitter panel = new SseEmitter(NEVER_TIME_OUT);
-        // Register first, so no change is lost while the current state is being sent.
+        // Primero se registra, para no perder ningún cambio mientras se envía el estado actual.
         broadcaster.addPanel(panel);
         for (Station station : registry.findAll()) {
             broadcaster.sendStation(panel, station);

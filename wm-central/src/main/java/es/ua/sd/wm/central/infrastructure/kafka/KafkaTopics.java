@@ -6,10 +6,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
 
-/** WM_Central creates every topic on start-up if it does not exist yet. */
+/** WM_Central crea al arrancar los topics que aún no existen. */
 @Configuration
 class KafkaTopics {
 
+    /** Grupo de consumidores de WM_Central. */
+    static final String CENTRAL_GROUP = "central";
+
+    // Particiones de cada topic. WM_FO lee las de STATION_STATUS por número ("0-2"):
+    // si cambia este valor, hay que cambiarlo también allí.
     private static final int PARTITIONS = 3;
 
     @Bean

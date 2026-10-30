@@ -33,7 +33,7 @@ import org.springframework.kafka.test.utils.ContainerTestUtils;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-/** The real WM_Central with a real (embedded) Kafka. The test plays a WM_FO and a WM_WS_E. */
+/** El WM_Central real con un Kafka real (embebido). El test hace de WM_FO y de WM_WS_E. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @EmbeddedKafka(bootstrapServersProperty = "spring.kafka.bootstrap-servers")
 class IrrigationKafkaTest {
@@ -66,7 +66,7 @@ class IrrigationKafkaTest {
 
     @BeforeEach
     void connectToKafka() {
-        // Central's listeners start with the newest messages, so wait until they are ready.
+        // Los listeners de Central empiezan por los mensajes más recientes: hay que esperar a que estén listos.
         listeners.getListenerContainers().forEach(container ->
                 ContainerTestUtils.waitForAssignment(container, PARTITIONS_PER_TOPIC));
 
@@ -125,7 +125,7 @@ class IrrigationKafkaTest {
                 && message.contains("Unknown operator FO-404"));
     }
 
-    /** Reads commands and notifications until one matches; returns everything read. */
+    /** Lee órdenes y notificaciones hasta que una coincide; devuelve todo lo leído. */
     private List<String> receiveUntil(Predicate<String> expected) {
         List<String> received = new ArrayList<>();
         await().atMost(Duration.ofSeconds(15)).until(() -> {

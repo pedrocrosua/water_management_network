@@ -6,7 +6,7 @@ import es.ua.sd.wm.common.event.StationStatus;
 import es.ua.sd.wm.common.event.Topics;
 import org.springframework.stereotype.Component;
 
-/** Every state change is also published, so operators can list the available stations. */
+/** Cada cambio de estado también se publica, para que los operarios vean qué estaciones están disponibles. */
 @Component
 class KafkaStationStatusPublisher implements StationChangePublisher {
 

@@ -3,9 +3,9 @@ package es.ua.sd.wm.central.domain;
 import es.ua.sd.wm.common.validation.Validator;
 
 /**
- * A field operator registered in WM_Central.
+ * Un operario de campo registrado en WM_Central.
  *
- * @param active false when the operator may no longer request irrigations
+ * @param active false si ya no puede pedir riegos
  */
 public record Operator(String id, String name, boolean active) {
 

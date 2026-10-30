@@ -5,7 +5,7 @@ import es.ua.sd.wm.common.event.OperatorNotification;
 import es.ua.sd.wm.common.event.Topics;
 import org.springframework.stereotype.Component;
 
-/** Notifications go to every WM_FO; each one keeps those whose key is its own operator id. */
+/** Las notificaciones llegan a todos los WM_FO; cada uno se queda con las que llevan su id de operario como clave. */
 @Component
 class KafkaOperatorNotifier implements OperatorNotifier {
 

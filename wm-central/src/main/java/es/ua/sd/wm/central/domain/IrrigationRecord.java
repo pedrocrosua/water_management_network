@@ -5,9 +5,9 @@ import es.ua.sd.wm.common.model.IrrigationSource;
 import java.time.Instant;
 
 /**
- * A finished irrigation, as it is stored in the history.
+ * Un riego terminado, tal como se guarda en el historial.
  *
- * @param operatorId null when the irrigation was not requested by an operator
+ * @param operatorId null si no lo pidió un operario
  */
 public record IrrigationRecord(
         String stationId,
