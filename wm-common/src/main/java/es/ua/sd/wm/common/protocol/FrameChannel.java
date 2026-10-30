@@ -153,7 +153,10 @@ public final class FrameChannel implements AutoCloseable {
     /** Devuelve el ACK o NACK recibido, o null si no llega a tiempo. */
     private Integer waitForReply(BlockingQueue<Integer> replies) throws InterruptedException, IOException {
         Integer reply = replies.poll(acknowledgementTimeoutMillis, TimeUnit.MILLISECONDS);
-        ensureOpen();
+        // Un ACK o NACK ya recibido vale aunque el canal se haya cerrado justo después.
+        if (reply == null || reply == CLOSE_SIGNAL) {
+            ensureOpen();
+        }
         return reply;
     }
 

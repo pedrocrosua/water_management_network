@@ -105,6 +105,26 @@ class FrameChannelTest {
     }
 
     @Test
+    void sendSucceedsWhenThePeerClosesRightAfterTheAck() throws Exception {
+        // Depende de qué hilo llega antes: se repite para que el fallo aparezca seguro.
+        for (int round = 0; round < 50; round++) {
+            try (SocketPair sockets = new SocketPair();
+                 FrameChannel channel = new FrameChannel(sockets.left, message -> {});
+                 ExecutorService peer = Executors.newSingleThreadExecutor()) {
+                Future<?> ackAndClose = peer.submit(() -> {
+                    new FrameReader(sockets.right.getInputStream()).readFrame();
+                    sockets.right.getOutputStream().write(0x06);
+                    sockets.right.close();
+                    return null;
+                });
+
+                channel.send("HELLO");
+                ackAndClose.get(2, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    @Test
     void nackResendsTheSameFrame() throws Exception {
         try (SocketPair sockets = new SocketPair();
              FrameChannel channel = new FrameChannel(sockets.left, message -> {}, 1000);
