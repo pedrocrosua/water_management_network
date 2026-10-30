@@ -8,9 +8,10 @@ import es.ua.sd.wm.operator.domain.StationBoard;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Locale;
 
-/** Text menu of the operator: list the stations and request irrigations. */
+/** Menú de texto del operario: listar las estaciones y pedir riegos. */
 public class OperatorConsole {
 
     private final String operatorId;
@@ -28,7 +29,7 @@ public class OperatorConsole {
         this.output = output;
     }
 
-    /** Reads options until the input ends. */
+    /** Lee opciones hasta que se acaba la entrada. */
     public void run() {
         printMenu();
         String option;
@@ -42,22 +43,23 @@ public class OperatorConsole {
         }
     }
 
-    /** Called from the Kafka thread whenever WM_Central reports progress of a request. */
+    /** Lo llama el hilo de Kafka cada vez que WM_Central informa del progreso de una petición. */
     public void show(OperatorNotification notification) {
         print(">>> [" + notification.type() + "] " + notification.message());
     }
 
-    /** Called from the Kafka thread every second while one of this operator's irrigations lasts. */
+    /** Lo llama el hilo de Kafka cada segundo mientras dura uno de los riegos de este operario. */
     public void showTelemetry(Telemetry telemetry) {
         print(String.format(Locale.ROOT, "    %s: %.1f L/min, %.1f L, %d s", telemetry.stationId(),
                 telemetry.flowLitresPerMinute(), telemetry.accumulatedLitres(), telemetry.elapsedSeconds()));
     }
 
     private void listStations() {
-        if (board.all().isEmpty()) {
+        List<StationStatus> stations = board.all();
+        if (stations.isEmpty()) {
             print("No station is known yet");
         }
-        for (StationStatus station : board.all()) {
+        for (StationStatus station : stations) {
             print(station.stationId() + "  " + station.state() + "  " + station.location());
         }
     }
@@ -74,7 +76,7 @@ public class OperatorConsole {
             requests.request(stationId.trim(), Integer.parseInt(seconds.trim()));
             print("Request sent; WM_Central will answer here");
         } catch (IllegalArgumentException invalid) {
-            // NumberFormatException is also an IllegalArgumentException.
+            // NumberFormatException también es una IllegalArgumentException: este catch recoge los dos errores.
             print("Seconds must be a positive whole number and the station id cannot be empty");
         }
     }
@@ -85,7 +87,7 @@ public class OperatorConsole {
         print("2 + Enter: request an irrigation");
     }
 
-    /** Synchronized: menu lines and notifications from Kafka never get mixed on one line. */
+    /** synchronized: las líneas del menú y las notificaciones de Kafka nunca se mezclan en una línea. */
     private synchronized void print(String line) {
         output.println(line);
     }

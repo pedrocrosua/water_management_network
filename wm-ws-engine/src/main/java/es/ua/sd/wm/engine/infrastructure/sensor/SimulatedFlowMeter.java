@@ -3,7 +3,7 @@ package es.ua.sd.wm.engine.infrastructure.sensor;
 import es.ua.sd.wm.engine.application.port.out.FlowMeter;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** There is no real flow meter: the flow varies a little around 20 litres per minute. */
+/** No hay caudalímetro real: el caudal varía un poco alrededor de 20 litros por minuto. */
 public class SimulatedFlowMeter implements FlowMeter {
 
     private static final double MINIMUM_LITRES_PER_MINUTE = 18.0;

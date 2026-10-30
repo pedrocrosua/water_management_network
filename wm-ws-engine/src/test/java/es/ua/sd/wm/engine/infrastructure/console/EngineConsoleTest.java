@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** The console menu, fed with typed lines instead of a real keyboard. */
+/** El menú de consola, con líneas escritas en lugar de un teclado real. */
 class EngineConsoleTest {
 
     private final LeakSensor sensor = new LeakSensor();

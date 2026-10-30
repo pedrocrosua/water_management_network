@@ -6,7 +6,7 @@ import es.ua.sd.wm.operator.application.port.out.IrrigationRequestSender;
 import org.springframework.kafka.core.KafkaTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Publishes the request as JSON, with the station id as key. */
+/** Publica la petición en JSON, con el id de la estación como clave. */
 public class KafkaIrrigationRequestSender implements IrrigationRequestSender {
 
     private final KafkaTemplate<String, String> kafka;

@@ -19,7 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-/** A real server socket and a fake WM_WS_E that uses the real frame protocol. */
+/** Un socket de servidor real y un WM_WS_E falso que usa el protocolo de tramas real. */
 @Timeout(15)
 class EngineSocketServerTest {
 
@@ -82,7 +82,7 @@ class EngineSocketServerTest {
         try (FakeEngine engine = new FakeEngine(null)) {
             engine.send("HELLO");
 
-            // Three unanswered PINGs: about 600 ms with the short test interval.
+            // Tres PING sin respuesta: unos 600 ms con el intervalo corto del test.
             await().atLeast(Duration.ofMillis(400)).atMost(Duration.ofSeconds(3))
                     .until(() -> events.received.contains("lost"));
         }
@@ -140,7 +140,7 @@ class EngineSocketServerTest {
         }
     }
 
-    /** Plays the role of a WM_WS_E. With a pongStatus it answers every PING, otherwise it stays silent. */
+    /** Hace de WM_WS_E. Con pongStatus responde a cada PING; sin él, se queda callado. */
     private final class FakeEngine implements AutoCloseable {
 
         private final BlockingQueue<String> received = new LinkedBlockingQueue<>();
@@ -176,7 +176,7 @@ class EngineSocketServerTest {
                 try {
                     channel.send("PONG#" + sequence + "#" + pongStatus);
                 } catch (IOException ignored) {
-                    // The test checks what the server saw; a lost PONG is not relevant here.
+                    // El test comprueba lo que vio el servidor; aquí un PONG perdido no importa.
                 }
             }
         }

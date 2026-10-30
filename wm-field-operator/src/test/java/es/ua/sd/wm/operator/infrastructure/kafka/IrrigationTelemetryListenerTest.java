@@ -12,7 +12,7 @@ import java.io.StringReader;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 
-/** The listener's filter, fed directly with the JSON text that would come from Kafka. */
+/** El filtro del listener, alimentado directamente con el texto JSON que llegaría de Kafka. */
 class IrrigationTelemetryListenerTest {
 
     private final ByteArrayOutputStream screen = new ByteArrayOutputStream();

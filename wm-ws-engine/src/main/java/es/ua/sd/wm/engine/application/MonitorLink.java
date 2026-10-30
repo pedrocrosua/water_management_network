@@ -4,12 +4,11 @@ import es.ua.sd.wm.engine.application.port.out.MonitorConnection;
 import es.ua.sd.wm.engine.domain.StationIdentity;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Optional;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Keeps the Engine connected to its Monitor. If the connection is lost it tries again. */
+/** Mantiene el Engine conectado a su Monitor. Si se pierde la conexión, lo vuelve a intentar. */
 public class MonitorLink {
 
     private static final Logger log = LoggerFactory.getLogger(MonitorLink.class);
@@ -20,9 +19,8 @@ public class MonitorLink {
     private final Duration checkInterval;
 
     private volatile boolean running = true;
-    private volatile StationIdentity currentStation;
 
-    /** onIdentified runs every time a Monitor tells the Engine which station it belongs to. */
+    /** onIdentified se ejecuta cada vez que un Monitor le dice al Engine a qué estación pertenece. */
     public MonitorLink(MonitorConnection monitor, Consumer<StationIdentity> onIdentified,
                        Duration retryDelay, Duration checkInterval) {
         this.monitor = monitor;
@@ -31,7 +29,7 @@ public class MonitorLink {
         this.checkInterval = checkInterval;
     }
 
-    /** Runs until {@link #stop()} is called. */
+    /** Se ejecuta hasta que se llama a {@link #stop()}. */
     public void run() throws InterruptedException {
         while (running) {
             try {
@@ -53,17 +51,12 @@ public class MonitorLink {
         monitor.close();
     }
 
-    /** The station assigned by the last Monitor that accepted this Engine, if any. */
-    public Optional<StationIdentity> currentStation() {
-        return Optional.ofNullable(currentStation);
-    }
-
     private void stayConnected() throws IOException, InterruptedException {
-        currentStation = monitor.connect();
-        log.info(">>> Working as Engine of station {} ({})", currentStation.id(), currentStation.location());
-        onIdentified.accept(currentStation);
+        StationIdentity station = monitor.connect();
+        log.info(">>> Working as Engine of station {} ({})", station.id(), station.location());
+        onIdentified.accept(station);
 
-        // The connection answers the PINGs by itself; here we only notice when it ends.
+        // La conexión responde sola a los PING; aquí solo se detecta cuándo se cierra.
         while (running && monitor.isOpen()) {
             Thread.sleep(checkInterval);
         }

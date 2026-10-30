@@ -1,8 +1,8 @@
 package es.ua.sd.wm.engine.domain;
 
 /**
- * The station's flow meter, reduced to what matters for faults: is there a leak or not.
- * There is no real hardware, so the leak is simulated from the console.
+ * Detecta fugas en la estación. No hay hardware real: la fuga se simula desde el menú
+ * ({@code EngineConsole}).
  */
 public class LeakSensor {
 

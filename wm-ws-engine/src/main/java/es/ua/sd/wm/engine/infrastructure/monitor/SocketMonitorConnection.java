@@ -13,17 +13,19 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-/** Talks to the station's WM_WS_M over a socket, using the frame protocol. */
+/** Habla con el WM_WS_M de la estación por un socket, con el protocolo de tramas. */
 public class SocketMonitorConnection implements MonitorConnection {
 
     private static final int CONNECT_TIMEOUT_MILLIS = 3000;
     private static final int ID_ANSWER_TIMEOUT_SECONDS = 5;
-    // The Monitor sends a PING every second: three silent seconds mean it is gone.
+    // El Monitor envía un PING cada segundo: tres segundos de silencio significan que se ha ido
+    // (la misma regla de tres PING que aplica el Monitor).
     private static final int SILENCE_TIMEOUT_MILLIS = 3000;
 
     private final String host;
     private final int port;
     private final LeakSensor sensor;
+    // El hilo de entrega de FrameChannel deja aquí el ID; connect() lo espera.
     private final BlockingQueue<SocketMessage> idAnswers = new LinkedBlockingQueue<>();
 
     private volatile FrameChannel channel;
@@ -66,17 +68,18 @@ public class SocketMonitorConnection implements MonitorConnection {
         switch (message.type()) {
             case ID -> idAnswers.add(message);
             case PING -> answerPing(message.field(0));
+            // Lanzar aquí hace que FrameChannel cierre la conexión.
             default -> throw new IllegalArgumentException("Unexpected message from WM_WS_M: " + text);
         }
     }
 
-    /** PONG carries the same sequence number and KO while the sensor detects a leak. */
+    /** PONG lleva el mismo número de secuencia, y KO mientras el sensor detecte una fuga. */
     private void answerPing(String sequence) {
         String status = sensor.isLeaking() ? "KO" : "OK";
         try {
             channel.send(SocketMessage.of(MessageType.PONG, sequence, status).format());
         } catch (IOException failed) {
-            // FrameChannel closes itself on failure; MonitorLink notices and reconnects.
+            // FrameChannel se cierra solo al fallar; MonitorLink lo detecta y vuelve a conectar.
         }
     }
 

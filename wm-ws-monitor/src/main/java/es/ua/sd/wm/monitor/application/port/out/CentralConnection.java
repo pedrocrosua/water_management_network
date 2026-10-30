@@ -4,26 +4,26 @@ import es.ua.sd.wm.monitor.domain.StationIdentity;
 import java.io.IOException;
 import java.util.function.Consumer;
 
-/** Link with WM_Central. The application does not know it is a socket. */
+/** Enlace con WM_Central. La aplicación no sabe que es un socket. */
 public interface CentralConnection extends AutoCloseable {
 
     /**
-     * Connects and authenticates the station.
+     * Conecta y autentica la estación.
      *
-     * @param stateListener receives every state WM_Central reports later (STATE messages)
-     * @return the state WM_Central gave the station when accepting it
-     * @throws AuthenticationRejectedException if WM_Central does not accept the station
-     * @throws IOException if WM_Central cannot be reached
+     * @param stateListener recibe cada estado que WM_Central envíe después (mensajes STATE)
+     * @return el estado que WM_Central dio a la estación al aceptarla
+     * @throws AuthenticationRejectedException si WM_Central no acepta la estación
+     * @throws IOException si no se puede llegar a WM_Central
      */
     String connect(StationIdentity station, Consumer<String> stateListener) throws IOException;
 
-    /** Tells WM_Central the station is alive. */
+    /** Avisa a WM_Central de que la estación sigue viva. */
     void sendHealth() throws IOException;
 
-    /** Tells WM_Central the station has a fault (LEAK). */
+    /** Avisa a WM_Central de una avería (LEAK). */
     void reportLeak() throws IOException;
 
-    /** Tells WM_Central the fault is fixed (LEAK_CLEARED). */
+    /** Avisa a WM_Central de que la avería está reparada (LEAK_CLEARED). */
     void reportLeakCleared() throws IOException;
 
     boolean isOpen();
@@ -31,7 +31,7 @@ public interface CentralConnection extends AutoCloseable {
     @Override
     void close();
 
-    /** WM_Central answered AUTH_KO: retrying with the same data will not help. */
+    /** WM_Central respondió AUTH_KO: reintentar con los mismos datos no sirve. */
     final class AuthenticationRejectedException extends IOException {
 
         public AuthenticationRejectedException(String reason) {

@@ -13,12 +13,12 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Keeps the board of stations up to date. On every start it reads the topic from the very
- * beginning (offset 0 of its three partitions, created by WM_Central), so the board shows the
- * latest state of every station even if WM_FO was off when it changed.
+ * Mantiene al día el tablero de estaciones. En cada arranque lee el topic desde el principio
+ * (offset 0 de sus tres particiones, creadas por WM_Central), así que el tablero muestra el
+ * último estado de cada estación aunque WM_FO estuviera apagado cuando cambió.
  *
- * <p>It has its own group: it reads fixed partitions instead of joining a group, and Kafka
- * rejects its offsets in a group that already has members (the notification listener).
+ * <p>Tiene su propio grupo: lee particiones fijas en lugar de unirse a un grupo, y Kafka rechaza
+ * sus offsets en un grupo que ya tiene miembros (los otros listeners, en "fo-FO-001").
  */
 @Component
 class StationStatusListener {
@@ -35,7 +35,7 @@ class StationStatusListener {
 
     @KafkaListener(groupId = "fo-${operator.id}-board", topicPartitions = @TopicPartition(
             topic = Topics.STATION_STATUS,
-            partitions = "0-2",
+            partitions = "0-2", // las 3 que crea WM_Central (PARTITIONS en su KafkaTopics)
             partitionOffsets = @PartitionOffset(partition = "*", initialOffset = "0")))
     void receive(String message) {
         try {

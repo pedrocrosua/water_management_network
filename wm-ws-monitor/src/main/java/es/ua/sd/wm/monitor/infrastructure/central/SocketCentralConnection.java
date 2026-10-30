@@ -13,7 +13,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-/** Talks to WM_Central over a socket, using the frame protocol. */
+/** Habla con WM_Central por un socket, con el protocolo de tramas. */
 public class SocketCentralConnection implements CentralConnection {
 
     private static final int CONNECT_TIMEOUT_MILLIS = 3000;
@@ -21,11 +21,12 @@ public class SocketCentralConnection implements CentralConnection {
 
     private final String host;
     private final int port;
+    // El hilo de entrega de FrameChannel deja aquí AUTH_OK o AUTH_KO; connect() los espera.
+    private final BlockingQueue<SocketMessage> authAnswers = new LinkedBlockingQueue<>();
 
     private volatile FrameChannel channel;
     private volatile StationIdentity station;
     private volatile Consumer<String> stateListener;
-    private final BlockingQueue<SocketMessage> authAnswers = new LinkedBlockingQueue<>();
 
     public SocketCentralConnection(String host, int port) {
         this.host = host;
@@ -40,6 +41,8 @@ public class SocketCentralConnection implements CentralConnection {
 
         Socket socket = new Socket();
         socket.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT_MILLIS);
+        // Sin timeout de lectura: Central solo escribe cuando algo cambia, así que el silencio es
+        // normal. Si Central se cae, lo detecta el envío de HEALTH, que se queda sin ACK.
         channel = new FrameChannel(socket, this::handle);
         channel.send(SocketMessage.of(MessageType.AUTH, station.id(), station.location()).format());
 
@@ -84,6 +87,7 @@ public class SocketCentralConnection implements CentralConnection {
         switch (message.type()) {
             case AUTH_OK, AUTH_KO -> authAnswers.add(message);
             case STATE -> stateListener.accept(message.field(1));
+            // Lanzar aquí hace que FrameChannel cierre la conexión.
             default -> throw new IllegalArgumentException("Unexpected message from WM_Central: " + text);
         }
     }

@@ -3,10 +3,10 @@ package es.ua.sd.wm.monitor.domain;
 import es.ua.sd.wm.common.validation.Validator;
 
 /**
- * Which Watering Station this Monitor watches over.
+ * Qué Watering Station vigila este Monitor.
  *
- * @param id       unique id given on the command line, for example "WS-01"
- * @param location park or garden, sent to WM_Central when registering
+ * @param id       id único que llega por línea de comandos, por ejemplo "WS-01"
+ * @param location parque o jardín; se envía a WM_Central al registrarse
  */
 public record StationIdentity(String id, String location) {
 

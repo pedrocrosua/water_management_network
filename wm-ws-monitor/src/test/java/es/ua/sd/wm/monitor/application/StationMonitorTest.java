@@ -15,7 +15,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-/** The monitoring loop with an in-memory WM_Central and very short intervals. */
+/** El bucle de vigilancia con un WM_Central en memoria e intervalos muy cortos. */
 @Timeout(10)
 class StationMonitorTest {
 

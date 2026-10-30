@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** The latest known state of every station, as WM_Central publishes it. */
+/** El último estado conocido de cada estación, tal como lo publica WM_Central. */
 public class StationBoard {
 
     private final Map<String, StationStatus> stationsById = new ConcurrentHashMap<>();

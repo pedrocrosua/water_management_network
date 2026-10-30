@@ -6,7 +6,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintStream;
 
-/** Text menu of the Engine: simulate a leak, repair it and stop the current irrigation. */
+/** Menú de texto del Engine: simular una fuga, repararla y parar el riego en curso. */
 public class EngineConsole {
 
     private final LeakSensor sensor;
@@ -22,7 +22,7 @@ public class EngineConsole {
         this.output = output;
     }
 
-    /** Reads options until the input ends (for example, when started without a terminal). */
+    /** Lee opciones hasta que se acaba la entrada (por ejemplo, si se arranca sin terminal). */
     public void run() {
         printMenu();
         String option;

@@ -13,8 +13,8 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Shows the notifications for this operator. Each WM_FO has its own group ("fo-FO-001"), so it
- * receives every notification and keeps those whose key is its operator id (fan-out).
+ * Muestra las notificaciones de este operario. Cada WM_FO tiene su propio grupo ("fo-FO-001"),
+ * así que recibe todas las notificaciones y se queda con las que llevan su id como clave (fan-out).
  */
 @Component
 class OperatorNotificationListener {

@@ -16,7 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-/** The socket adapter against a fake WM_WS_M that answers with the real frame protocol. */
+/** El adaptador de socket contra un WM_WS_M falso que responde con el protocolo de tramas real. */
 @Timeout(15)
 class SocketMonitorConnectionTest {
 
@@ -85,11 +85,11 @@ class SocketMonitorConnectionTest {
         assertThatThrownBy(connection::connect).isInstanceOf(IOException.class);
     }
 
-    /** Accepts the Engine and, when it says HELLO, replies with the given message (null: never). */
+    /** Acepta al Engine y, cuando dice HELLO, responde con el mensaje indicado (null: nunca). */
     private void answerHelloWith(String reply) {
         Thread.ofPlatform().start(() -> {
             try {
-                // The handler waits for monitorSide, so it can reply even to the very first message.
+                // El handler espera a monitorSide, así que puede responder incluso al primer mensaje.
                 monitorSide.complete(new FrameChannel(fakeMonitorSocket.accept(), message -> {
                     receivedByMonitor.add(message);
                     if (message.equals("HELLO") && reply != null) {
@@ -97,7 +97,7 @@ class SocketMonitorConnectionTest {
                     }
                 }));
             } catch (IOException ignored) {
-                // The test that closes the server socket expects this.
+                // Lo espera el test que cierra el socket del servidor.
             }
         });
     }
@@ -106,7 +106,7 @@ class SocketMonitorConnectionTest {
         try {
             channel.send(message);
         } catch (IOException ignored) {
-            // The assertions in the test will show what went wrong.
+            // Las comprobaciones del test mostrarán qué ha fallado.
         }
     }
 }

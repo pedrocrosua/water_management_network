@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** The Engine's irrigation logic, with a fixed flow and an in-memory list instead of Kafka. */
+/** La lógica de riego del Engine, con un caudal fijo y una lista en memoria en lugar de Kafka. */
 class IrrigationControllerTest {
 
     private static final double FLOW_LITRES_PER_MINUTE = 30.0;

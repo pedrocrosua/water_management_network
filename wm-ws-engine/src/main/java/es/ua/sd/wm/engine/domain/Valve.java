@@ -1,6 +1,6 @@
 package es.ua.sd.wm.engine.domain;
 
-/** The station's solenoid valve: open means water is flowing. Simulated, there is no hardware. */
+/** La electroválvula de la estación: abierta significa que sale agua. Simulada, sin hardware. */
 public class Valve {
 
     private volatile boolean open;

@@ -13,8 +13,10 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Shows, second by second, the irrigations this operator asked for. The key of the topic is the
- * station id, so the operator is recognised by the operatorId inside each message.
+ * Muestra, segundo a segundo, los riegos que pidió este operario. La clave del topic es el id de
+ * la estación, así que el operario se reconoce por el operatorId de cada mensaje.
+ *
+ * <p>Usa el grupo del operario ("fo-FO-001"): recibe todos los eventos y se queda con los suyos.
  */
 @Component
 class IrrigationTelemetryListener {

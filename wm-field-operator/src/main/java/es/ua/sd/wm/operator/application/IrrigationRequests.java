@@ -6,7 +6,7 @@ import es.ua.sd.wm.common.validation.Validator;
 import es.ua.sd.wm.operator.application.port.out.IrrigationRequestSender;
 import java.util.UUID;
 
-/** Asks WM_Central for irrigations in the name of one operator. */
+/** Pide riegos a WM_Central en nombre de un operario. */
 public class IrrigationRequests {
 
     private final String operatorId;
@@ -18,9 +18,9 @@ public class IrrigationRequests {
         this.sender = sender;
     }
 
-    /** Sends the request and returns it; the answers arrive later as notifications. */
+    /** Envía la petición y la devuelve; las respuestas llegan después como notificaciones. */
     public IrrigationRequest request(String stationId, int limitSeconds) {
-        // Every request gets a unique id so its notifications can be matched with it.
+        // Cada petición lleva un id único para poder relacionarla con sus notificaciones.
         IrrigationRequest request = new IrrigationRequest(UUID.randomUUID().toString(),
                 IrrigationSource.OPERATOR, operatorId, stationId, limitSeconds);
         sender.send(request);

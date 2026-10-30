@@ -14,7 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-/** The connection loop with an in-memory WM_WS_M and very short intervals. */
+/** El bucle de conexión con un WM_WS_M en memoria e intervalos muy cortos. */
 @Timeout(10)
 class MonitorLinkTest {
 
@@ -37,8 +37,7 @@ class MonitorLinkTest {
     void adoptsTheStationGivenByTheMonitor() {
         startLink();
 
-        await().atMost(Duration.ofSeconds(2)).until(() -> link.currentStation().isPresent());
-        assertThat(link.currentStation()).contains(new StationIdentity("WS-01", "Park"));
+        await().atMost(Duration.ofSeconds(2)).until(() -> !identified.isEmpty());
         assertThat(identified).containsExactly(new StationIdentity("WS-01", "Park"));
     }
 
@@ -48,7 +47,7 @@ class MonitorLinkTest {
 
         startLink();
 
-        await().atMost(Duration.ofSeconds(2)).until(() -> link.currentStation().isPresent());
+        await().atMost(Duration.ofSeconds(2)).until(() -> !identified.isEmpty());
         assertThat(monitor.connections.get()).isEqualTo(4);
     }
 

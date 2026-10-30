@@ -1,6 +1,6 @@
 package es.ua.sd.wm.engine.domain;
 
-/** The irrigation in progress: who asked for it, its time limit and the water supplied so far. */
+/** El riego en curso: quién lo pidió, su tiempo límite y el agua suministrada hasta ahora. */
 public class Irrigation {
 
     private static final double SECONDS_PER_MINUTE = 60.0;
@@ -19,7 +19,7 @@ public class Irrigation {
         this.limitSeconds = limitSeconds;
     }
 
-    /** One more second of water at the given flow. */
+    /** Un segundo más de agua con el caudal indicado. */
     public void addSecond(double flowLitresPerMinute) {
         elapsedSeconds++;
         litres += flowLitresPerMinute / SECONDS_PER_MINUTE;

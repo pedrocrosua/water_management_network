@@ -16,7 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-/** The socket adapter against a fake WM_Central that answers with the real frame protocol. */
+/** El adaptador de socket contra un WM_Central falso que responde con el protocolo de tramas real. */
 @Timeout(10)
 class SocketCentralConnectionTest {
 
@@ -85,7 +85,7 @@ class SocketCentralConnectionTest {
         assertThatThrownBy(() -> connection.connect(STATION, newState -> { })).isInstanceOf(IOException.class);
     }
 
-    /** Accepts the Monitor's connection and answers its first message (the AUTH). */
+    /** Acepta la conexión del Monitor y responde a su primer mensaje (el AUTH). */
     private void answerAuthWith(String answer) {
         Thread.ofPlatform().start(() -> {
             try {
@@ -98,7 +98,7 @@ class SocketCentralConnectionTest {
                 });
                 centralSide.complete(channel[0]);
             } catch (IOException ignored) {
-                // The test closed the server socket.
+                // El test cerró el socket del servidor.
             }
         });
     }
@@ -107,7 +107,7 @@ class SocketCentralConnectionTest {
         try {
             channel.send(message);
         } catch (IOException ignored) {
-            // The test is over.
+            // El test ha terminado.
         }
     }
 }

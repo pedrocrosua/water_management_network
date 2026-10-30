@@ -1,11 +1,11 @@
 package es.ua.sd.wm.monitor.application.port.in;
 
-/** What the Monitor learns about its Engine. The socket server calls it; the application decides. */
+/** Lo que el Monitor sabe de su Engine. Lo llama el servidor de sockets; decide la aplicación. */
 public interface EngineEvents {
 
-    /** The Engine answered a PING: healthy is false when it reports a fault (PONG with KO). */
+    /** El Engine respondió a un PING: healthy es false si avisa de una avería (PONG con KO). */
     void engineAnswered(boolean healthy);
 
-    /** The Engine stopped answering or its connection was lost. */
+    /** El Engine dejó de responder o se perdió su conexión. */
     void engineLost();
 }

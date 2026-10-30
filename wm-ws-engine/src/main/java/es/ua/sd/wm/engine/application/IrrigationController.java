@@ -14,11 +14,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Runs the station's irrigations: carries out WM_Central's orders, reports the flow every
- * second and closes the valve when the time limit is reached or someone stops it.
+ * Ejecuta los riegos de la estación: cumple las órdenes de WM_Central, informa del caudal cada
+ * segundo y cierra la válvula al llegar al tiempo límite o cuando alguien lo para.
  *
- * <p>Every public method is synchronized: an order, the clock tick and the menu never change
- * the valve at the same time.
+ * <p>Todos los métodos públicos son synchronized: una orden, el reloj y el menú nunca cambian
+ * la válvula a la vez.
  */
 public class IrrigationController {
 
@@ -43,11 +43,12 @@ public class IrrigationController {
         switch (command.type()) {
             case START -> start(command);
             case STOP -> stopByOrder(command);
+            // WM_Central solo envía START y STOP al Engine.
             default -> log.warn("{} is not supported yet", command.type());
         }
     }
 
-    /** Called once per second. While irrigating, reports the flow and checks the time limit. */
+    /** Se llama una vez por segundo. Durante el riego, informa del caudal y comprueba el tiempo límite. */
     public synchronized void tick() {
         if (current == null) {
             return;
@@ -64,7 +65,7 @@ public class IrrigationController {
         }
     }
 
-    /** Stop option of the station menu. Returns false if there was nothing to stop. */
+    /** Opción de parar del menú de la estación. Devuelve false si no había nada que parar. */
     public synchronized boolean stopFromStation() {
         if (current == null) {
             return false;
@@ -88,12 +89,12 @@ public class IrrigationController {
         }
     }
 
-    /** WM_Central stops the irrigation; without a reason it counts as a manual stop. */
+    /** WM_Central para el riego; sin motivo, cuenta como parada manual. */
     private void stopByOrder(StationCommand command) {
         if (current != null) {
             end(command.reason() != null ? command.reason() : EndReason.MANUAL_STOP);
         } else {
-            valve.close();
+            valve.close(); // no había riego: se asegura de que la válvula queda cerrada
         }
         accept(command);
     }

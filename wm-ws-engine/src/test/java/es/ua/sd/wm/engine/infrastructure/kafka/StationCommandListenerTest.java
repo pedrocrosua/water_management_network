@@ -22,7 +22,7 @@ import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import tools.jackson.databind.json.JsonMapper;
 
-/** A real (embedded) Kafka: the Engine must keep only the orders for its own station. */
+/** Un Kafka real (embebido): el Engine solo debe quedarse con las órdenes de su estación. */
 @EmbeddedKafka(topics = Topics.STATION_COMMANDS, partitions = 3)
 class StationCommandListenerTest {
 
@@ -41,7 +41,7 @@ class StationCommandListenerTest {
         KafkaTemplate<String, String> kafka = kafkaTemplate(broker);
 
         await().atMost(Duration.ofSeconds(15)).until(() -> {
-            // Orders sent before the listener is ready are skipped, so keep sending until one arrives.
+            // Las órdenes enviadas antes de que el listener esté listo se pierden: se envían hasta que llega una.
             kafka.send(Topics.STATION_COMMANDS, "WS-02", startJson("R2", "WS-02"));
             kafka.send(Topics.STATION_COMMANDS, "WS-01", startJson("R1", "WS-01"));
             return !executed.isEmpty();

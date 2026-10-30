@@ -10,11 +10,17 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Builds the Monitor from the command-line arguments and starts it. */
+/** Construye el Monitor a partir de los argumentos y lo arranca. */
 @Configuration
 class MonitorConfiguration {
 
-    /** stop() closes the connection with WM_Central when the application shuts down. */
+    // Cada cuánto se envía HEALTH a Central y PING al Engine.
+    private static final Duration HEALTH_INTERVAL = Duration.ofSeconds(1);
+    private static final Duration PING_INTERVAL = Duration.ofSeconds(1);
+    // Espera antes de volver a conectar con Central.
+    private static final Duration RETRY_DELAY = Duration.ofSeconds(3);
+
+    /** stop() cierra la conexión con WM_Central al apagar la aplicación. */
     @Bean(destroyMethod = "stop")
     StationMonitor stationMonitor(@Value("${station.id}") String stationId,
                                   @Value("${station.location}") String location,
@@ -23,21 +29,21 @@ class MonitorConfiguration {
         return new StationMonitor(
                 new StationIdentity(stationId, location),
                 new SocketCentralConnection(centralHost, centralPort),
-                Duration.ofSeconds(1),
-                Duration.ofSeconds(3));
+                HEALTH_INTERVAL,
+                RETRY_DELAY);
     }
 
-    /** Listens for the station's Engine from start-up; the Monitor sends it a PING every second. */
+    /** Escucha al Engine de la estación desde el arranque y le envía un PING cada segundo. */
     @Bean(initMethod = "start", destroyMethod = "stop")
     EngineSocketServer engineSocketServer(@Value("${engine.port}") int enginePort,
                                           @Value("${station.id}") String stationId,
                                           @Value("${station.location}") String location,
                                           StationMonitor monitor) {
         return new EngineSocketServer(enginePort, new StationIdentity(stationId, location), monitor,
-                Duration.ofSeconds(1));
+                PING_INTERVAL);
     }
 
-    /** Runs the Monitor on the main thread; the application lives as long as it runs. */
+    /** Ejecuta el Monitor en el hilo principal; la aplicación vive mientras se ejecuta. */
     @Bean
     ApplicationRunner startMonitor(StationMonitor monitor) {
         return arguments -> monitor.run();

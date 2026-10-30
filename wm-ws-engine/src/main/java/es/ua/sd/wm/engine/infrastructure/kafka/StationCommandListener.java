@@ -14,11 +14,11 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Reads the orders for this station from Kafka.
+ * Lee de Kafka las órdenes para esta estación.
  *
- * <p>It cannot start with the application: the Engine only learns its station id when the
- * Monitor sends it. Then it starts with its own group ("engine-WS-01"), so it receives every
- * order of the topic and keeps only those whose key is its station id (fan-out).
+ * <p>No puede arrancar con la aplicación: el Engine solo conoce su id de estación cuando el
+ * Monitor se lo envía. Entonces arranca con su propio grupo ("engine-WS-01"), así que recibe
+ * todas las órdenes del topic y se queda solo con las que llevan su id como clave (fan-out).
  */
 public class StationCommandListener {
 
@@ -38,7 +38,7 @@ public class StationCommandListener {
         this.json = json;
     }
 
-    /** Starts reading the orders of this station. Nothing changes if it already does. */
+    /** Empieza a leer las órdenes de esta estación. Si ya lo hacía, no cambia nada. */
     public synchronized void listenFor(String newStationId) {
         if (newStationId.equals(stationId)) {
             return;
@@ -46,7 +46,9 @@ public class StationCommandListener {
         stop();
         ContainerProperties properties = new ContainerProperties(Topics.STATION_COMMANDS);
         properties.setGroupId("engine-" + newStationId);
-        properties.setMessageListener((MessageListener<String, String>) record -> receive(newStationId, record));
+        // Se usa newStationId y no el campo stationId, que stop() pone a null.
+        MessageListener<String, String> listener = record -> receive(newStationId, record);
+        properties.setMessageListener(listener);
 
         container = new KafkaMessageListenerContainer<>(consumerFactory, properties);
         container.start();

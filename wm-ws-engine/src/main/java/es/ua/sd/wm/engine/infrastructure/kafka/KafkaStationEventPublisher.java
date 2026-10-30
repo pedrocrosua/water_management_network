@@ -6,7 +6,7 @@ import es.ua.sd.wm.engine.application.port.out.StationEventPublisher;
 import org.springframework.kafka.core.KafkaTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Publishes the station's events as JSON, with the station id as key. */
+/** Publica los eventos de la estación en JSON, con el id de la estación como clave. */
 public class KafkaStationEventPublisher implements StationEventPublisher {
 
     private final KafkaTemplate<String, String> kafka;
@@ -19,7 +19,7 @@ public class KafkaStationEventPublisher implements StationEventPublisher {
 
     @Override
     public void publish(StationEvent event) {
-        // writerFor keeps the "type" field that tells the reader which kind of event it is.
+        // writerFor conserva el campo "type", que indica al lector qué tipo de evento es.
         String message = json.writerFor(StationEvent.class).writeValueAsString(event);
         kafka.send(Topics.STATION_TELEMETRY, event.stationId(), message);
     }

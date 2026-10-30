@@ -23,9 +23,14 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Builds the Engine from the command-line arguments and starts it. */
+/** Construye el Engine a partir de los argumentos y lo arranca. */
 @Configuration
 class EngineConfiguration {
+
+    // Espera antes de volver a conectar con el Monitor.
+    private static final Duration RETRY_DELAY = Duration.ofSeconds(3);
+    // Cada cuánto se comprueba si la conexión con el Monitor sigue abierta.
+    private static final Duration CONNECTION_CHECK_INTERVAL = Duration.ofMillis(500);
 
     @Bean
     LeakSensor leakSensor() {
@@ -44,7 +49,7 @@ class EngineConfiguration {
                 new KafkaStationEventPublisher(kafka, json));
     }
 
-    /** Moves the irrigation forward once per second (telemetry and time limit). */
+    /** Avanza el riego una vez por segundo (telemetría y tiempo límite). */
     @Bean(destroyMethod = "shutdownNow")
     ScheduledExecutorService irrigationClock(IrrigationController irrigations) {
         ScheduledExecutorService clock = Executors.newSingleThreadScheduledExecutor();
@@ -52,7 +57,7 @@ class EngineConfiguration {
         return clock;
     }
 
-    /** stop() leaves the consumer group cleanly when the application shuts down. */
+    /** stop() sale limpiamente del grupo de consumidores al apagar la aplicación. */
     @Bean(destroyMethod = "stop")
     StationCommandListener stationCommandListener(ConsumerFactory<String, String> consumerFactory,
                                                   IrrigationController irrigations, JsonMapper json) {
@@ -60,8 +65,8 @@ class EngineConfiguration {
     }
 
     /**
-     * stop() closes the connection with the Monitor when the application shuts down. Once the
-     * Monitor says which station this is, the Engine starts reading that station's orders.
+     * stop() cierra la conexión con el Monitor al apagar la aplicación. Cuando el Monitor dice qué
+     * estación es, el Engine empieza a leer las órdenes de esa estación.
      */
     @Bean(destroyMethod = "stop")
     MonitorLink monitorLink(@Value("${monitor.host}") String monitorHost,
@@ -70,11 +75,11 @@ class EngineConfiguration {
         return new MonitorLink(
                 new SocketMonitorConnection(monitorHost, monitorPort, sensor),
                 station -> commandListener.listenFor(station.id()),
-                Duration.ofSeconds(3),
-                Duration.ofMillis(500));
+                RETRY_DELAY,
+                CONNECTION_CHECK_INTERVAL);
     }
 
-    /** The menu runs on its own thread; the connection loop keeps the main thread alive. */
+    /** El menú va en su propio hilo; el bucle de conexión mantiene vivo el hilo principal. */
     @Bean
     ApplicationRunner startEngine(LeakSensor sensor, IrrigationController irrigations, MonitorLink link) {
         return arguments -> {

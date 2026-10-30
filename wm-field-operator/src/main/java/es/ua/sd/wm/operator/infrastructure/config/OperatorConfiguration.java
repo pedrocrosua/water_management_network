@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Builds WM_FO from the command-line arguments and starts its menu. */
+/** Construye WM_FO a partir de los argumentos y arranca su menú. */
 @Configuration
 class OperatorConfiguration {
 
@@ -35,7 +35,7 @@ class OperatorConfiguration {
                 new BufferedReader(new InputStreamReader(System.in)), System.out);
     }
 
-    /** The menu runs on the main thread; the Kafka listeners keep the application alive. */
+    /** El menú va en el hilo principal; los listeners de Kafka mantienen viva la aplicación. */
     @Bean
     ApplicationRunner startMenu(OperatorConsole console) {
         return arguments -> console.run();

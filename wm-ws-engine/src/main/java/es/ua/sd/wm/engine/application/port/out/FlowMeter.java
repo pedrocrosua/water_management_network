@@ -1,6 +1,6 @@
 package es.ua.sd.wm.engine.application.port.out;
 
-/** Measures how much water goes through the open valve. */
+/** Mide cuánta agua pasa por la válvula abierta. */
 public interface FlowMeter {
 
     double readLitresPerMinute();

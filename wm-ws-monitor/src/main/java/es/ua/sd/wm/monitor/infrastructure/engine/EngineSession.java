@@ -71,6 +71,7 @@ final class EngineSession {
         switch (message.type()) {
             case HELLO -> introduce();
             case PONG -> receivePong(message);
+            // Un tipo válido que el Engine no debe enviar: se ignora.
             default -> log.warn("Unexpected message from the Engine: {}", text);
         }
     }
@@ -81,7 +82,7 @@ final class EngineSession {
             return;
         }
         EngineSession previous = server.replaceCurrentEngine(this);
-        if (previous != null && previous != this) {
+        if (previous != null) {
             log.info("A new Engine connected; closing the previous one");
             previous.close();
         }
@@ -108,6 +109,7 @@ final class EngineSession {
         switch (status) {
             case "OK" -> events.engineAnswered(true);
             case "KO" -> events.engineAnswered(false);
+            // Lanzar aquí hace que FrameChannel cierre la conexión.
             default -> throw new IllegalArgumentException("PONG status must be OK or KO, not " + status);
         }
     }
