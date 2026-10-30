@@ -128,9 +128,10 @@ En desarrollo. Están terminados:
 - el protocolo de sockets;
 - la conexión y la vigilancia de las estaciones;
 - las averías;
-- el ciclo completo de un riego pedido por un operario.
+- el ciclo completo de un riego pedido por un operario;
+- el despliegue de Central y Kafka en Railway.
 
-Quedan pendientes los casos de uso de la lista anterior y el despliegue en Railway.
+Quedan pendientes los casos de uso de la lista anterior.
 
 ## Despliegue local
 
