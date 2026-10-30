@@ -132,6 +132,53 @@ En desarrollo. Están terminados:
 
 Quedan pendientes los casos de uso de la lista anterior y el despliegue en Railway.
 
+## Despliegue local
+
+La [guía de despliegue local](docs/LOCAL_DEPLOYMENT.md) explica el arranque manual,
+las comprobaciones y la parada. Para automatizarlo:
+
+```bash
+./scripts/local-up.sh
+```
+
+Después abre una terminal por consola y ejecuta `./scripts/local-console.sh ws1-engine`,
+`./scripts/local-console.sh ws2-engine` y `./scripts/local-console.sh fo1`.
+El panel está en **http://localhost:8080**. Para parar, cierra las consolas con `Ctrl+C`
+y ejecuta `./scripts/local-down.sh`; se conserva SQLite.
+
+## Despliegue en el laboratorio
+
+`WM_Central` y Kafka se ejecutan en la nube (Railway). Cada PC del laboratorio solo
+necesita Docker, git y una copia del repositorio. En cada PC, una sola vez, crea `lab.env`
+y rellena las direcciones de Central y Kafka:
+
+```bash
+cp lab.env.example lab.env
+```
+
+**PC de las estaciones.** Cada estación necesita dos terminales: primero su Monitor y
+después su Engine.
+
+```bash
+./scripts/lab-ws.sh monitor WS-01 "Parque de Canalejas"   # terminal 1
+./scripts/lab-ws.sh engine WS-01                          # terminal 2
+```
+
+**PC de los operarios.** Una terminal por operario:
+
+```bash
+./scripts/lab-fo.sh FO-001
+```
+
+Se pueden lanzar tantas estaciones y operarios como se necesite, en el mismo PC o en
+varios, cambiando el identificador. Para parar una aplicación, o simular que se cae, pulsa
+`Ctrl+C` o cierra su terminal. La primera ejecución en cada PC construye las imágenes y
+tarda unos minutos.
+
+Si Central y Kafka se ejecutan en un equipo del aula en lugar de en la nube, arráncalos
+en ese equipo con `PUBLIC_HOST=<su ip> docker compose up -d --build kafka wm-central` y
+usa en `lab.env` esa IP con los puertos `5000` y `29092`.
+
 ## Compilación y pruebas
 
 Con Docker disponible, desde la raíz del proyecto:

@@ -8,3 +8,4 @@ notas.txt
 .idea
 .vscode
 *.db
+*.env

@@ -1,0 +1,22 @@
+# Lab PC with Field Operators. Each operator runs in its own Compose project
+# (wm-<operator id>), so one PC can run as many operators as needed.
+# Start each one in its own terminal with the script:
+#
+#   ./scripts/lab-fo.sh FO-001
+#
+# Kafka runs elsewhere: its address comes from lab.env (see lab.env.example).
+
+services:
+
+  # Interactive: the menu needs its own terminal
+  operator:
+    image: wm-fo:lab
+    build:
+      context: .
+      args:
+        MODULE: wm-field-operator
+        APP_NAME: WM_FO
+    stdin_open: true
+    tty: true
+    command: ["--operator.id=${OPERATOR_ID:?set OPERATOR_ID}",
+              "--spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP:?set KAFKA_BOOTSTRAP in lab.env}"]

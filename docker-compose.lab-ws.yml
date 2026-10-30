@@ -1,0 +1,34 @@
+# Lab PC with Watering Stations. Each station is a WM_WS_M + WM_WS_E pair that runs in its
+# own Compose project (wm-<station id>), so one PC can run as many stations as needed.
+# Start them with the script, one terminal per application:
+#
+#   ./scripts/lab-ws.sh monitor WS-01 "Parque de Canalejas"
+#   ./scripts/lab-ws.sh engine WS-01
+#
+# Central and Kafka run elsewhere: their addresses come from lab.env (see lab.env.example).
+
+services:
+
+  monitor:
+    image: wm-ws-monitor:lab
+    build:
+      context: .
+      args:
+        MODULE: wm-ws-monitor
+        APP_NAME: WM_WS_M
+    command: ["--engine.port=6000",
+              "--central.host=${CENTRAL_HOST:?set CENTRAL_HOST in lab.env}", "--central.port=${CENTRAL_PORT:-5000}",
+              "--station.id=${STATION_ID:?set STATION_ID}", "--station.location=${STATION_LOCATION:-}"]
+
+  # Interactive: the menu needs its own terminal
+  engine:
+    image: wm-ws-engine:lab
+    build:
+      context: .
+      args:
+        MODULE: wm-ws-engine
+        APP_NAME: WM_WS_E
+    stdin_open: true
+    tty: true
+    command: ["--monitor.host=monitor", "--monitor.port=6000",
+              "--spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP:?set KAFKA_BOOTSTRAP in lab.env}"]
