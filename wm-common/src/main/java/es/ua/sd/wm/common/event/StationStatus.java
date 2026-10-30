@@ -3,7 +3,7 @@ package es.ua.sd.wm.common.event;
 import es.ua.sd.wm.common.model.StationState;
 import es.ua.sd.wm.common.validation.Validator;
 
-/** Current state of one station, so operators can see which ones are available. */
+/** Estado actual de una estación, para que los operarios vean cuáles están disponibles. */
 public record StationStatus(
         String stationId,
         String location,

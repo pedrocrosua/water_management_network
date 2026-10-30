@@ -7,16 +7,17 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
-/** Collects complete frames from a byte stream. The caller owns and closes the stream. */
+/** Lee tramas completas de un flujo de bytes. Quien crea el flujo es quien lo cierra. */
 public final class FrameReader {
 
-    private static final int DEFAULT_MAXIMUM_MESSAGE_LENGTH = 4096;
+    // Lo que devuelve read() cuando el otro extremo cierra la conexión.
+    static final int END_OF_STREAM = -1;
 
     private final InputStream input;
     private final int maximumMessageLength;
 
     public FrameReader(InputStream input) {
-        this(input, DEFAULT_MAXIMUM_MESSAGE_LENGTH);
+        this(input, FrameCodec.MAXIMUM_MESSAGE_LENGTH);
     }
 
     public FrameReader(InputStream input, int maximumMessageLength) {
@@ -27,14 +28,14 @@ public final class FrameReader {
         this.maximumMessageLength = maximumMessageLength;
     }
 
-    /** Returns the next complete frame, or null if the stream ends before a new frame starts. */
+    /** Devuelve la siguiente trama completa, o null si el flujo acaba antes de empezar otra. */
     public byte[] readFrame() throws IOException {
         int firstByte = input.read();
-        // Connection ended
-        if (firstByte == -1) {
+        // Conexión cerrada
+        if (firstByte == END_OF_STREAM) {
             return null;
         }
-        // If it's not STX ==> connection is corrupted ==> Exception
+        // Si no empieza por STX, el flujo está corrupto
         if (firstByte != FrameCodec.START_OF_TEXT) {
             throw new IOException("Frame must start with STX");
         }
@@ -54,8 +55,8 @@ public final class FrameReader {
             nextByte = readRequiredByte();
         }
 
-        frame.write(nextByte);
-        // Always read one checksum byte, even when its value happens to be STX or ETX.
+        frame.write(FrameCodec.END_OF_TEXT);
+        // El LRC se lee siempre, aunque su valor coincida con STX o ETX.
         frame.write(readRequiredByte());
 
         return frame.toByteArray();
@@ -63,7 +64,7 @@ public final class FrameReader {
 
     private int readRequiredByte() throws IOException {
         int nextByte = input.read();
-        if (nextByte == -1) {
+        if (nextByte == END_OF_STREAM) {
             throw new EOFException("Connection ended before the frame was complete");
         }
 

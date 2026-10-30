@@ -1,33 +1,33 @@
 package es.ua.sd.wm.common.protocol;
 
-/** First word of every socket message: says what the message means. */
+/** Primera palabra de cada mensaje de socket: indica qué significa. */
 public enum MessageType {
 
     // WM_WS_M -> WM_Central
-    /** AUTH#stationId#location: register the station and authenticate it. */
+    /** AUTH#stationId#location: registra y autentica la estación. */
     AUTH,
-    /** HEALTH#stationId#OK: the station is alive, sent every second. */
+    /** HEALTH#stationId#OK: la estación sigue viva; cada segundo. */
     HEALTH,
-    /** LEAK#stationId: a leak was detected. */
+    /** LEAK#stationId: se ha detectado una fuga. */
     LEAK,
-    /** LEAK_CLEARED#stationId: the leak is fixed. */
+    /** LEAK_CLEARED#stationId: la fuga está reparada. */
     LEAK_CLEARED,
 
     // WM_Central -> WM_WS_M
-    /** AUTH_OK#stationId#state: authentication accepted. */
+    /** AUTH_OK#stationId#state: autenticación aceptada. */
     AUTH_OK,
-    /** AUTH_KO#reason: authentication rejected. */
+    /** AUTH_KO#reason: autenticación rechazada. */
     AUTH_KO,
-    /** STATE#stationId#state: the station's state changed. */
+    /** STATE#stationId#state: la estación ha cambiado de estado. */
     STATE,
 
     // WM_WS_E <-> WM_WS_M
-    /** HELLO: the Engine has just connected to its Monitor. */
+    /** HELLO: el Engine acaba de conectarse a su Monitor. */
     HELLO,
-    /** ID#stationId#location: the Monitor tells the Engine which station it is. */
+    /** ID#stationId#location: el Monitor le dice al Engine qué estación es. */
     ID,
-    /** PING#sequence: the Monitor checks the Engine, every second. */
+    /** PING#sequence: el Monitor comprueba el Engine; cada segundo. */
     PING,
-    /** PONG#sequence#OK or PONG#sequence#KO: the Engine's answer. */
+    /** PONG#sequence#OK o PONG#sequence#KO: la respuesta del Engine. */
     PONG
 }

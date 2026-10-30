@@ -4,10 +4,10 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
- * Anything a station Engine publishes on {@link Topics#STATION_TELEMETRY}.
+ * Lo que publica el Engine de una estación en {@link Topics#STATION_TELEMETRY}.
  *
- * <p>Three kinds of message share that topic, so the JSON includes a "type" field
- * (for example "type":"TELEMETRY") that tells the reader which one it is.
+ * <p>Ese topic lleva tres tipos de mensaje; el campo "type" del JSON
+ * (por ejemplo "type":"TELEMETRY") indica cuál es.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({

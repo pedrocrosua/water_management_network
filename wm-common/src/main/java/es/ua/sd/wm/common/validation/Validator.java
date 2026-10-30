@@ -1,6 +1,6 @@
 package es.ua.sd.wm.common.validation;
 
-/** Reusable input checks shared by all WaterManagement applications. */
+/** Comprobaciones de entrada que comparten todas las aplicaciones. */
 public final class Validator {
 
     private static final char FIRST_PRINTABLE_ASCII_CHARACTER = ' ';
@@ -38,7 +38,7 @@ public final class Validator {
         }
     }
 
-    /** Checks characters only; use requireNonEmpty as well when empty text is forbidden. */
+    /** Solo comprueba los caracteres; para prohibir el texto vacío, usar también requireNonEmpty. */
     public static void requirePrintableAscii(String value, String fieldName) {
         requireNonNull(value, fieldName);
 

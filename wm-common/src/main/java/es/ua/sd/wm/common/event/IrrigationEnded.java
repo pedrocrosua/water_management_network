@@ -3,7 +3,7 @@ package es.ua.sd.wm.common.event;
 import es.ua.sd.wm.common.model.EndReason;
 import es.ua.sd.wm.common.validation.Validator;
 
-/** The valve is closed and the irrigation is over. It is also the summary sent to the operator. */
+/** La válvula se ha cerrado y el riego ha terminado. También es el resumen que recibe el operario. */
 public record IrrigationEnded(
         String requestId,
         String stationId,

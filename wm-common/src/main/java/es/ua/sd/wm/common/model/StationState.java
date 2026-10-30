@@ -1,23 +1,23 @@
 package es.ua.sd.wm.common.model;
 
 /**
- * State of a Watering Station, as shown on the Central panel.
- * Only WM_Central decides the state; the Monitor and the Engine just report what happens.
+ * Estado de una Watering Station, tal como se ve en el panel de Central.
+ * Solo WM_Central decide el estado; el Monitor y el Engine solo informan de lo que pasa.
  */
 public enum StationState {
 
-    /** No connection with the station's Monitor. Panel colour: grey. */
+    /** Sin conexión con el Monitor de la estación. Color en el panel: gris. */
     DISCONNECTED,
 
-    /** Working and waiting for an irrigation request. Panel colour: green. */
+    /** Funciona y espera peticiones de riego. Color: verde. */
     AVAILABLE,
 
-    /** Watering right now. Panel colour: blinking green. */
+    /** Regando ahora mismo. Color: verde parpadeante. */
     IRRIGATING,
 
-    /** A leak was detected; no irrigation until it is fixed. Panel colour: red. */
+    /** Tiene una fuga; no riega hasta repararla. Color: rojo. */
     LEAK,
 
-    /** Blocked on purpose by WM_Central ("Fuera de Servicio"). Panel colour: orange. */
+    /** Bloqueada a propósito por WM_Central ("Fuera de Servicio"). Color: naranja. */
     OUT_OF_SERVICE
 }

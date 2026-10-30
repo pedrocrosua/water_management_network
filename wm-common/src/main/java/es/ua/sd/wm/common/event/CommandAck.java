@@ -3,10 +3,12 @@ package es.ua.sd.wm.common.event;
 import es.ua.sd.wm.common.validation.Validator;
 
 /**
- * The Engine's answer to a {@link StationCommand}.
+ * Respuesta del Engine a una {@link StationCommand}.
  *
- * @param accepted true if the order was carried out
- * @param reason   why it was rejected; null when accepted
+ * @param command  orden a la que responde; no se llama "type" porque ese nombre ya lo usa
+ *                 el JSON para distinguir los eventos (ver {@link StationEvent})
+ * @param accepted true si la orden se ha cumplido
+ * @param reason   motivo del rechazo; null si se aceptó
  */
 public record CommandAck(
         String requestId,

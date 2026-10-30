@@ -28,7 +28,7 @@ class FrameCodecTest {
 
     @Test
     void encodeAddsDelimitersAndChecksum() {
-        // XOR of HELLO and ETX is 0x41.
+        // El XOR de HELLO y ETX es 0x41.
         byte[] expectedFrame = {0x02, 'H', 'E', 'L', 'L', 'O', 0x03, 0x41};
 
         assertArrayEquals(expectedFrame, FrameCodec.encode("HELLO"));

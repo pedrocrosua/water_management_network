@@ -56,7 +56,7 @@ class FrameReaderTest {
     @ParameterizedTest
     @ValueSource(strings = {"A@", "AA"})
     void checksumCanHaveTheSameValueAsAFrameDelimiter(String message) throws IOException {
-        // These messages produce an LRC of STX and ETX respectively.
+        // Estos mensajes producen un LRC igual a STX y a ETX, respectivamente.
         byte[] frame = FrameCodec.encode(message);
         FrameReader reader = new FrameReader(new ByteArrayInputStream(frame));
 

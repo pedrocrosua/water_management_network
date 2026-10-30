@@ -12,15 +12,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Conversation with one connected WM_WS_E.
+ * Conversación con un WM_WS_E conectado.
  *
- * <p>The Engine starts with HELLO and receives the station's ID. From then on it gets a PING
- * every interval and must answer PONG with OK or KO. After three PINGs without an answer the
- * Engine is considered lost and the connection is closed.
+ * <p>El Engine empieza con HELLO y recibe el ID de la estación. Después recibe un PING cada
+ * intervalo y responde PONG con OK o KO. Tras tres PING sin respuesta se da por perdido y se
+ * cierra la conexión.
  */
 final class EngineSession {
 
@@ -32,12 +33,14 @@ final class EngineSession {
     private final EngineSocketServer server;
     private final Duration pingInterval;
     private final ScheduledExecutorService pinger = Executors.newSingleThreadScheduledExecutor();
-    // FrameChannel starts reading inside its own constructor, so a message can arrive before
-    // the channel is stored. Whoever needs it waits for this future.
+    // FrameChannel empieza a leer en su constructor: puede llegar un mensaje antes de guardarlo.
+    // Quien lo necesite espera a este future.
     private final CompletableFuture<FrameChannel> channelReady = new CompletableFuture<>();
+    // Lo incrementa el hilo de los PING y lo pone a 0 el que recibe el PONG.
+    // Con AtomicInteger no se pierde ninguna puesta a 0.
+    private final AtomicInteger unansweredPings = new AtomicInteger();
 
     private volatile boolean introduced;
-    private volatile int unansweredPings;
     private int nextSequence = 1;
 
     EngineSession(Socket socket, StationIdentity station, EngineEvents events,
@@ -46,7 +49,7 @@ final class EngineSession {
         this.events = events;
         this.server = server;
         this.pingInterval = pingInterval;
-        // A dead network sends nothing, not even ACKs: also give up after three silent intervals.
+        // Una red caída no envía nada, ni ACK: también se abandona tras tres intervalos en silencio.
         socket.setSoTimeout((int) pingInterval.toMillis() * MAXIMUM_UNANSWERED_PINGS);
         channelReady.complete(new FrameChannel(socket, this::handle, this::onClosed));
         log.info("Engine connected from {}", socket.getRemoteSocketAddress());
@@ -90,17 +93,17 @@ final class EngineSession {
     }
 
     private void ping() {
-        if (unansweredPings >= MAXIMUM_UNANSWERED_PINGS) {
+        if (unansweredPings.get() >= MAXIMUM_UNANSWERED_PINGS) {
             log.warn("The Engine did not answer {} PINGs", MAXIMUM_UNANSWERED_PINGS);
             close();
             return;
         }
-        unansweredPings++;
+        unansweredPings.incrementAndGet();
         send(SocketMessage.of(MessageType.PING, String.valueOf(nextSequence++)));
     }
 
     private void receivePong(SocketMessage pong) {
-        unansweredPings = 0;
+        unansweredPings.set(0);
         String status = pong.field(1);
         switch (status) {
             case "OK" -> events.engineAnswered(true);
@@ -123,7 +126,7 @@ final class EngineSession {
         try {
             channelReady.join().send(message.format());
         } catch (IOException failed) {
-            // FrameChannel closes itself on failure, which triggers onClosed().
+            // FrameChannel se cierra solo al fallar, y eso llama a onClosed().
             log.warn("Could not send {} to the Engine: {}", message.type(), failed.getMessage());
         }
     }

@@ -5,8 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * A socket message: a type followed by its fields, separated by '#'.
- * For example {@code AUTH#WS-01#Parque de Canalejas}.
+ * Mensaje de socket: un tipo seguido de sus campos, separados por '#'.
+ * Por ejemplo {@code AUTH#WS-01#Parque de Canalejas}.
  */
 public record SocketMessage(MessageType type, List<String> fields) {
 
@@ -28,11 +28,11 @@ public record SocketMessage(MessageType type, List<String> fields) {
         return new SocketMessage(type, List.of(fields));
     }
 
-    /** Reads a message such as "STATE#WS-01#AVAILABLE". */
+    /** Lee un mensaje como "STATE#WS-01#AVAILABLE". Un tipo desconocido lanza excepción. */
     public static SocketMessage parse(String text) {
         Validator.requireNonEmpty(text, "Message");
 
-        // -1 keeps empty fields at the end, so "STATE#WS-01#" is not silently shortened.
+        // -1 conserva los campos vacíos del final: "STATE#WS-01#" no se recorta sin avisar.
         String[] parts = text.split(SEPARATOR, -1);
         MessageType type;
         try {
@@ -43,7 +43,7 @@ public record SocketMessage(MessageType type, List<String> fields) {
         return new SocketMessage(type, Arrays.asList(parts).subList(1, parts.length));
     }
 
-    /** The field at that position (0 is the first field after the type). */
+    /** El campo de esa posición (0 es el primero después del tipo). */
     public String field(int index) {
         if (index < 0 || index >= fields.size()) {
             throw new IllegalArgumentException(type + " message has no field number " + index);
@@ -51,7 +51,7 @@ public record SocketMessage(MessageType type, List<String> fields) {
         return fields.get(index);
     }
 
-    /** The text that travels inside the frame. */
+    /** El texto que viaja dentro de la trama. */
     public String format() {
         if (fields.isEmpty()) {
             return type.name();

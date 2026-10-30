@@ -3,11 +3,11 @@ package es.ua.sd.wm.common.event;
 import es.ua.sd.wm.common.validation.Validator;
 
 /**
- * Flow meter reading, sent every second while the station is irrigating.
+ * Lectura del caudalímetro; se envía cada segundo mientras la estación riega.
  *
- * @param flowLitresPerMinute current flow
- * @param accumulatedLitres   water supplied since the irrigation started
- * @param elapsedSeconds      time since the irrigation started
+ * @param flowLitresPerMinute caudal actual
+ * @param accumulatedLitres   agua suministrada desde que empezó el riego
+ * @param elapsedSeconds      tiempo desde que empezó el riego
  */
 public record Telemetry(
         String requestId,

@@ -1,17 +1,17 @@
 package es.ua.sd.wm.common.event;
 
-/** Orders that WM_Central can give to a station. */
+/** Órdenes que WM_Central puede dar a una estación. */
 public enum CommandType {
 
-    /** Open the valve and irrigate until the time limit. */
+    /** Abrir la válvula y regar hasta el tiempo límite. */
     START,
 
-    /** Close the valve and end the current irrigation. */
+    /** Cerrar la válvula y terminar el riego en curso. */
     STOP,
 
-    /** End any irrigation and stay out of service. */
+    /** Terminar cualquier riego y quedar fuera de servicio. */
     BLOCK,
 
-    /** Leave the out-of-service state. */
+    /** Salir de fuera de servicio. */
     ACTIVATE
 }

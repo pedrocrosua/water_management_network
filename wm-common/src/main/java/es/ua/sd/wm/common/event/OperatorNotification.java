@@ -3,10 +3,10 @@ package es.ua.sd.wm.common.event;
 import es.ua.sd.wm.common.validation.Validator;
 
 /**
- * Tells one operator how their request is going.
+ * Le cuenta a un operario cómo va su petición.
  *
- * @param message text to show on the operator's screen
- * @param summary final summary; only present when type is IRRIGATION_ENDED
+ * @param message texto que se muestra en la pantalla del operario
+ * @param summary resumen final; solo cuando type es IRRIGATION_ENDED
  */
 public record OperatorNotification(
         String requestId,

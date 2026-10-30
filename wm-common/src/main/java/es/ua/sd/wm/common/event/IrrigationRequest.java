@@ -4,13 +4,13 @@ import es.ua.sd.wm.common.model.IrrigationSource;
 import es.ua.sd.wm.common.validation.Validator;
 
 /**
- * Asks WM_Central to start an irrigation.
+ * Pide a WM_Central que empiece un riego.
  *
- * @param requestId    unique id; every later message about this request carries it
- * @param source       who is asking
- * @param operatorId   the operator's id; null when the request does not come from an operator
- * @param stationId    station that should irrigate
- * @param limitSeconds maximum irrigation time
+ * @param requestId    id único; lo llevan todos los mensajes posteriores de esta petición
+ * @param source       quién lo pide
+ * @param operatorId   id del operario; null si no lo pide un operario
+ * @param stationId    estación que debe regar
+ * @param limitSeconds tiempo máximo de riego
  */
 public record IrrigationRequest(
         String requestId,

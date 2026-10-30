@@ -1,14 +1,14 @@
 package es.ua.sd.wm.common.model;
 
-/** Who asked for an irrigation. */
+/** Quién pidió un riego. */
 public enum IrrigationSource {
 
-    /** A field operator, from WM_FO. */
+    /** Un operario de campo, desde WM_FO. */
     OPERATOR,
 
-    /** The menu of the station itself, from WM_WS_E. */
+    /** El menú de la propia estación, desde WM_WS_E. */
     STATION,
 
-    /** An order given from the WM_Central panel. */
+    /** Una orden dada desde el panel de WM_Central. */
     CENTRAL
 }

@@ -1,6 +1,6 @@
 package es.ua.sd.wm.common.event;
 
-/** Steps of an irrigation request, as the operator sees them. */
+/** Pasos de una petición de riego, tal como los ve el operario. */
 public enum NotificationType {
     RECEIVED,
     VALIDATING,

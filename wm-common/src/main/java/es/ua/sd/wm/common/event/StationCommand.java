@@ -4,14 +4,14 @@ import es.ua.sd.wm.common.model.EndReason;
 import es.ua.sd.wm.common.validation.Validator;
 
 /**
- * An order from WM_Central to one station.
+ * Orden de WM_Central a una estación.
  *
- * @param requestId    id of the request this order belongs to
- * @param type         what the station must do
- * @param stationId    station that must obey
- * @param operatorId   operator who asked for the irrigation; only for START, may be null
- * @param limitSeconds maximum irrigation time; only for START
- * @param reason       why the irrigation is stopped; only for STOP
+ * @param requestId    id de la petición a la que pertenece la orden
+ * @param type         qué debe hacer la estación
+ * @param stationId    estación que debe obedecer
+ * @param operatorId   operario que pidió el riego; solo en START, puede ser null
+ * @param limitSeconds tiempo máximo de riego; solo en START
+ * @param reason       motivo de la parada; solo en STOP
  */
 public record StationCommand(
         String requestId,

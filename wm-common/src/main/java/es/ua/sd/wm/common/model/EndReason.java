@@ -1,20 +1,20 @@
 package es.ua.sd.wm.common.model;
 
-/** Why an irrigation finished. */
+/** Por qué terminó un riego. */
 public enum EndReason {
 
-    /** The time limit set when the irrigation started was reached. */
+    /** Se alcanzó el tiempo límite fijado al empezar. */
     TIME_LIMIT,
 
-    /** Someone stopped it from the station menu. */
+    /** Alguien lo paró desde el menú de la estación. */
     MANUAL_STOP,
 
-    /** A leak was detected while irrigating. */
+    /** Se detectó una fuga durante el riego. */
     LEAK,
 
-    /** WM_Central put the station out of service. */
+    /** WM_Central dejó la estación fuera de servicio. */
     BLOCKED,
 
-    /** The station lost its connection with WM_Central. */
+    /** La estación perdió la conexión con WM_Central. */
     DISCONNECTED
 }

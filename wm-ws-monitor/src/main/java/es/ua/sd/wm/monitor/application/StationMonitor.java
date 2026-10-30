@@ -10,11 +10,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Keeps the station registered in WM_Central: connects, authenticates and then reports that
- * the station is alive every second. If the connection is lost it tries again.
+ * Mantiene la estación registrada en WM_Central: conecta, se autentica y cada segundo avisa de
+ * que sigue viva. Si se pierde la conexión, lo vuelve a intentar.
  *
- * <p>It also watches the station's Engine: a fault answer or a silent Engine is a LEAK for
- * WM_Central, and a healthy answer after that clears it. Only changes are reported.
+ * <p>También vigila al Engine: una respuesta KO o un Engine callado es un LEAK para WM_Central,
+ * y una respuesta OK posterior lo resuelve. Solo se informa de los cambios.
+ *
+ * <p>Hilos: {@link #run()} va en el hilo principal; los avisos del Engine llegan por el hilo del
+ * socket. Por eso {@code leaking} solo se toca dentro de métodos synchronized.
  */
 public class StationMonitor implements EngineEvents {
 
@@ -36,7 +39,7 @@ public class StationMonitor implements EngineEvents {
         this.retryDelay = retryDelay;
     }
 
-    /** Runs until {@link #stop()} is called or WM_Central rejects the station. */
+    /** Se ejecuta hasta que se llama a {@link #stop()} o WM_Central rechaza la estación. */
     public void run() throws InterruptedException {
         while (running) {
             try {
@@ -94,13 +97,14 @@ public class StationMonitor implements EngineEvents {
         }
     }
 
+    /** Se llama siempre desde un método synchronized. */
     private void startLeak(String reason) {
         leaking = true;
         log.warn(">>> LEAK in station {}: {}", station.id(), reason);
         tellCentral("LEAK", central::reportLeak);
     }
 
-    /** WM_Central marks a station that connects as available, so an active leak is reported again. */
+    /** WM_Central pone como disponible la estación que se conecta: si sigue la fuga, se vuelve a avisar. */
     private synchronized void reportLeakAgainIfStillLeaking() {
         if (leaking) {
             tellCentral("LEAK", central::reportLeak);
@@ -109,7 +113,7 @@ public class StationMonitor implements EngineEvents {
 
     private void tellCentral(String what, CentralMessage message) {
         if (!central.isOpen()) {
-            log.warn("WM_Central is not connected; {} will be sent after reconnecting", what);
+            log.warn("WM_Central is not connected; {} not sent (a LEAK still active is sent again after reconnecting)", what);
             return;
         }
         try {
@@ -123,7 +127,7 @@ public class StationMonitor implements EngineEvents {
         log.info(">>> Station {} is now {}", station.id(), state);
     }
 
-    /** One message for WM_Central that may fail to be sent. */
+    /** Un mensaje para WM_Central cuyo envío puede fallar. */
     private interface CentralMessage {
         void send() throws IOException;
     }
