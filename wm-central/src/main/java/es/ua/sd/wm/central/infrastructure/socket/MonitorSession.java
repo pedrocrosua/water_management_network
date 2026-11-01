@@ -113,7 +113,7 @@ final class MonitorSession {
             previous.close();
         }
 
-        Station station = registry.connect(stationId, location);
+        Station station = irrigations.monitorConnected(stationId, location);
         reply(SocketMessage.of(MessageType.AUTH_OK, station.id(), station.state().name()));
         // Después de AUTH_OK: así se descarta el STATE que publica connect(), y el Monitor
         // recibe primero AUTH_OK y una sola vez.

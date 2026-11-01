@@ -16,9 +16,11 @@ public class IrrigationRequests {
 
     private final String operatorId;
     private final IrrigationRequestSender sender;
-    // Petición cuyo final se está esperando (modo fichero) y el cerrojo que se abre cuando termina.
+    // Petición que se está esperando, si hay que esperar a su final o basta con su primera
+    // respuesta, y el cerrojo que se abre cuando llega.
     private String awaitedRequestId;
-    private CountDownLatch awaitedEnd;
+    private boolean waitingForTheEnd;
+    private CountDownLatch awaited;
 
     public IrrigationRequests(String operatorId, IrrigationRequestSender sender) {
         Validator.requireNonEmpty(operatorId, "Operator id (--operator.id)");
@@ -34,28 +36,45 @@ public class IrrigationRequests {
     }
 
     /**
+     * Envía la petición y espera su primera respuesta. Devuelve false si WM_Central no contesta
+     * en maxWait, por ejemplo porque está caído.
+     */
+    public boolean requestAndWaitForAnswer(String stationId, int limitSeconds, Duration maxWait)
+            throws InterruptedException {
+        return sendAndWait(newRequest(stationId, limitSeconds), false, maxWait);
+    }
+
+    /**
      * Envía la petición y espera a que termine: denegada, o con el riego acabado. Devuelve false si
      * en maxWait no llega el final (por ejemplo, porque WM_Central no responde).
      */
     public boolean requestAndWait(String stationId, int limitSeconds, Duration maxWait) throws InterruptedException {
-        IrrigationRequest request = newRequest(stationId, limitSeconds);
-        CountDownLatch end = new CountDownLatch(1);
-        synchronized (this) {
-            awaitedRequestId = request.requestId();
-            awaitedEnd = end;
-        }
-        sender.send(request);
-        // Se espera fuera del synchronized: así el hilo de Kafka puede entrar en notificationReceived.
-        return end.await(maxWait.toMillis(), TimeUnit.MILLISECONDS);
+        return sendAndWait(newRequest(stationId, limitSeconds), true, maxWait);
     }
 
     /** Lo llama el hilo de Kafka con cada notificación de este operario. */
     public synchronized void notificationReceived(OperatorNotification notification) {
+        if (!notification.requestId().equals(awaitedRequestId)) {
+            return;
+        }
         boolean isTheEnd = notification.type() == NotificationType.DENIED
                 || notification.type() == NotificationType.IRRIGATION_ENDED;
-        if (isTheEnd && notification.requestId().equals(awaitedRequestId)) {
-            awaitedEnd.countDown();
+        if (isTheEnd || !waitingForTheEnd) {
+            awaited.countDown();
         }
+    }
+
+    private boolean sendAndWait(IrrigationRequest request, boolean untilTheEnd, Duration maxWait)
+            throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        synchronized (this) {
+            awaitedRequestId = request.requestId();
+            waitingForTheEnd = untilTheEnd;
+            awaited = latch;
+        }
+        sender.send(request);
+        // Se espera fuera del synchronized: así el hilo de Kafka puede entrar en notificationReceived.
+        return latch.await(maxWait.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     private IrrigationRequest newRequest(String stationId, int limitSeconds) {

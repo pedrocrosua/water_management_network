@@ -12,6 +12,7 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 
@@ -24,15 +25,18 @@ public class OperatorConsole {
     private final StationBoard board;
     private final BufferedReader input;
     private final PrintStream output;
+    // Lo que se espera la primera respuesta de WM_Central antes de darla por caída.
+    private final Duration answerTimeout;
 
     public OperatorConsole(String operatorId, IrrigationRequests requests, RequestFile requestFile,
-                           StationBoard board, BufferedReader input, PrintStream output) {
+                           StationBoard board, BufferedReader input, PrintStream output, Duration answerTimeout) {
         this.operatorId = operatorId;
         this.requests = requests;
         this.requestFile = requestFile;
         this.board = board;
         this.input = input;
         this.output = output;
+        this.answerTimeout = answerTimeout;
     }
 
     /** Lee opciones hasta que se acaba la entrada. */
@@ -80,11 +84,16 @@ public class OperatorConsole {
             return;
         }
         try {
-            requests.request(stationId.trim(), Integer.parseInt(seconds.trim()));
-            print("Request sent; WM_Central will answer here");
+            boolean answered = requests.requestAndWaitForAnswer(stationId.trim(), Integer.parseInt(seconds.trim()),
+                    answerTimeout);
+            if (!answered) {
+                print("Imposible conectar con WM_Central: no answer in " + answerTimeout.toSeconds() + " s");
+            }
         } catch (IllegalArgumentException invalid) {
             // NumberFormatException también es una IllegalArgumentException: este catch recoge los dos errores.
             print("Seconds must be a positive whole number and the station id cannot be empty");
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt(); // la aplicación se está cerrando
         }
     }
 

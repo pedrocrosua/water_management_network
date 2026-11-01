@@ -5,6 +5,7 @@ import es.ua.sd.wm.central.application.IrrigationService;
 import es.ua.sd.wm.central.application.StationRegistry;
 import es.ua.sd.wm.central.application.port.out.IrrigationProgressPublisher;
 import es.ua.sd.wm.central.application.port.out.IrrigationRepository;
+import es.ua.sd.wm.central.application.port.out.OngoingIrrigationRepository;
 import es.ua.sd.wm.central.application.port.out.OperatorNotifier;
 import es.ua.sd.wm.central.application.port.out.OperatorRepository;
 import es.ua.sd.wm.central.application.port.out.StationChangePublisher;
@@ -34,9 +35,10 @@ class ApplicationConfiguration {
     IrrigationService irrigationService(StationRegistry registry, OperatorRepository operators,
                                         StationCommandSender commands, OperatorNotifier notifier,
                                         IrrigationProgressPublisher progress, IrrigationRepository history,
+                                        OngoingIrrigationRepository ongoingIrrigations,
                                         @Value("${irrigation.answer-timeout-seconds}") long answerTimeoutSeconds) {
         return new IrrigationService(registry, operators, commands, notifier, progress, history,
-                Duration.ofSeconds(answerTimeoutSeconds));
+                ongoingIrrigations, Duration.ofSeconds(answerTimeoutSeconds));
     }
 
     @Bean

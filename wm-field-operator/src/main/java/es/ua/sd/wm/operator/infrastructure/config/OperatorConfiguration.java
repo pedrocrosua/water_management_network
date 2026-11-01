@@ -39,8 +39,9 @@ class OperatorConfiguration {
     @Bean
     OperatorConsole operatorConsole(@Value("${operator.id}") String operatorId,
                                     IrrigationRequests requests, RequestFile requestFile, StationBoard board) {
+        // WM_Central contesta en milisegundos: si en 10 s no lo hace, está caída.
         return new OperatorConsole(operatorId, requests, requestFile, board,
-                new BufferedReader(new InputStreamReader(System.in)), System.out);
+                new BufferedReader(new InputStreamReader(System.in)), System.out, Duration.ofSeconds(10));
     }
 
     /** El menú va en el hilo principal; los listeners de Kafka mantienen viva la aplicación. */

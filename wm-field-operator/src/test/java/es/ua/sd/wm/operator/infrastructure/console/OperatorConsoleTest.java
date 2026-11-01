@@ -47,7 +47,13 @@ class OperatorConsoleTest {
             assertThat(request.stationId()).isEqualTo("WS-01");
             assertThat(request.limitSeconds()).isEqualTo(60);
         });
-        assertThat(screen.toString()).contains("Request sent");
+    }
+
+    @Test
+    void optionTwoSaysSoWhenCentralDoesNotAnswer() {
+        type("2\nWS-01\n60\n"); // en estos tests nadie contesta
+
+        assertThat(screen.toString()).contains("Imposible conectar con WM_Central: no answer in 0 s");
     }
 
     @Test
@@ -94,6 +100,6 @@ class OperatorConsoleTest {
         // Nadie contesta en estos tests: sin margen, cada línea del fichero espera solo sus segundos.
         RequestFile requestFile = new RequestFile(requests, Duration.ZERO, Duration.ZERO);
         return new OperatorConsole("FO-001", requests, requestFile, board,
-                new BufferedReader(new StringReader(lines)), new PrintStream(screen));
+                new BufferedReader(new StringReader(lines)), new PrintStream(screen), Duration.ZERO);
     }
 }

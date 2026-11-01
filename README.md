@@ -189,6 +189,26 @@ Java + Spring Boot · Apache Kafka · SQLite · Docker · Railway
 - Código: `FileIrrigationBackup`, `IrrigationController.tick` / `recoverInterruptedIrrigation`,
   `StationMonitor.engineLost` / `engineAnswered`.
 
+**Se cae un FO (`WM_FO`)**
+- El riego sigue: Central y la estación no dependen del FO.
+- Cada FO lee sus notificaciones con su propio grupo de Kafka (`fo-FO-001`). Al volver a
+  arrancar, Kafka le entrega las que se publicaron mientras estaba caído: el operario ve el
+  resultado de su riego.
+
+**Se cae Central (`WM_Central`)**
+- Las estaciones siguen regando hasta terminar: el Engine no necesita a Central para regar, y
+  el final del riego se queda en Kafka hasta que Central vuelve.
+- Los Monitores muestran "Imposible conectar con WM_Central" y lo reintentan solos.
+- Un FO que pide un riego espera 10 s la primera respuesta; si no llega, muestra "Imposible
+  conectar con WM_Central". Al volver, Central no atiende las peticiones enviadas mientras
+  estaba caída: empieza a leer el topic de peticiones desde el final.
+- Central guarda en SQLite los riegos en marcha (tabla `ongoing_irrigations`). Al volver a
+  arrancar, los recupera y procesa su final cuando le llega por Kafka: no se pierde ningún riego.
+- Solo hay que volver a arrancar Central: Monitores, Engines y FO se recuperan solos.
+- Código: `OngoingIrrigationRepository`, `IrrigationService.recoverOngoingIrrigations` /
+  `monitorConnected`, `IrrigationRequestListener.onPartitionsAssigned`,
+  `IrrigationRequests.requestAndWaitForAnswer`.
+
 ## Estado
 
 En desarrollo. Están terminados:
@@ -200,10 +220,10 @@ En desarrollo. Están terminados:
 - las órdenes del panel de Central: regar, bloquear y activar una o todas las estaciones;
 - el riego manual pedido desde el menú de la propia estación;
 - las peticiones leídas de un fichero;
-- la caída del Monitor o del Engine de una estación;
+- las caídas de cualquier módulo: Monitor, Engine, FO y Central;
 - el despliegue de Central y Kafka en Railway.
 
-Queda pendiente mejorar cómo responden los módulos cuando se cae un FO o Central.
+Queda pendiente la memoria de la práctica.
 
 ## Despliegue local
 

@@ -42,6 +42,7 @@ class IrrigationServiceTest {
     private final List<OperatorNotification> notifications = new CopyOnWriteArrayList<>();
     private final List<Telemetry> shownOnPanel = new CopyOnWriteArrayList<>();
     private final List<IrrigationRecord> savedIrrigations = new CopyOnWriteArrayList<>();
+    private final InMemoryOngoingIrrigations ongoing = new InMemoryOngoingIrrigations();
     private StationRegistry registry;
     private IrrigationService service;
 
@@ -50,13 +51,18 @@ class IrrigationServiceTest {
         registry = new StationRegistry(new InMemoryStations(), List.of());
         registry.connect("WS-01", "Canalejas");
         operators.put("FO-001", new Operator("FO-001", "Ana", true));
+        service = newService();
+    }
+
+    /** Un servicio con los dobles de este test; crear otro sirve para simular un reinicio. */
+    private IrrigationService newService() {
         OperatorRepository operatorRepository = id -> Optional.ofNullable(operators.get(id));
         StationCommandSender commandSender = sentCommands::add;
         OperatorNotifier notifier = notifications::add;
         IrrigationProgressPublisher panel = shownOnPanel::add;
         IrrigationRepository irrigationRepository = savedIrrigations::add;
-        service = new IrrigationService(registry, operatorRepository, commandSender, notifier,
-                panel, irrigationRepository, Duration.ofMillis(300));
+        return new IrrigationService(registry, operatorRepository, commandSender, notifier,
+                panel, irrigationRepository, ongoing, Duration.ofMillis(300));
     }
 
     @AfterEach
@@ -346,6 +352,24 @@ class IrrigationServiceTest {
         assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.DISCONNECTED);
         assertThat(sentCommands).isEmpty();
         assertThat(savedIrrigations).isEmpty();
+    }
+
+    @Test
+    void anIrrigationInProgressIsNotLostIfCentralRestarts() {
+        startIrrigation("R1");
+
+        // Reinicio: las estaciones quedan desconectadas y otro servicio usa la misma base de datos.
+        registry.disconnect("WS-01");
+        IrrigationService restarted = newService();
+        Station station = restarted.monitorConnected("WS-01", "Canalejas");
+        restarted.irrigationEnded(new IrrigationEnded("R1", "WS-01", "FO-001", 9.5, 30, EndReason.TIME_LIMIT));
+        restarted.stop();
+
+        assertThat(station.state()).isEqualTo(StationState.IRRIGATING);
+        assertThat(savedIrrigations).singleElement()
+                .satisfies(saved -> assertThat(saved.totalLitres()).isEqualTo(9.5));
+        assertThat(notifications.getLast().message()).isEqualTo("WS-01 finished (TIME_LIMIT): 9.5 L in 30 s");
+        assertThat(ongoing.findAll()).isEmpty();
     }
 
     private void startIrrigation(String requestId) {

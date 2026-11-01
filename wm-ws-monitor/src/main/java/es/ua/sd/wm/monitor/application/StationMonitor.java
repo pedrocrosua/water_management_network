@@ -48,7 +48,7 @@ public class StationMonitor implements EngineEvents {
                 log.error("{}. Check --station.id and --station.location.", rejected.getMessage());
                 return;
             } catch (IOException lost) {
-                log.warn("No connection with WM_Central ({}). Retrying in {} s",
+                log.warn("Imposible conectar con WM_Central ({}). Retrying in {} s",
                         lost.getMessage(), retryDelay.toSeconds());
             } finally {
                 central.close();

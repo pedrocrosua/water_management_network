@@ -21,7 +21,7 @@ class IrrigationTelemetryListenerTest {
     private final IrrigationRequests requests = new IrrigationRequests("FO-001", request -> { });
     private final OperatorConsole console = new OperatorConsole("FO-001", requests,
             new RequestFile(requests, Duration.ZERO, Duration.ZERO), new StationBoard(),
-            new BufferedReader(new StringReader("")), new PrintStream(screen));
+            new BufferedReader(new StringReader("")), new PrintStream(screen), Duration.ZERO);
     private final IrrigationTelemetryListener listener =
             new IrrigationTelemetryListener("FO-001", console, JsonMapper.builder().build());
 

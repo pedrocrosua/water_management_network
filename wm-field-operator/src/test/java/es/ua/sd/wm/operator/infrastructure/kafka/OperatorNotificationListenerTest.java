@@ -48,7 +48,7 @@ class OperatorNotificationListenerTest {
     private OperatorNotificationListener listenerOf(IrrigationRequests requests) {
         OperatorConsole console = new OperatorConsole("FO-001", requests,
                 new RequestFile(requests, Duration.ZERO, Duration.ZERO), new StationBoard(),
-                new BufferedReader(new StringReader("")), new PrintStream(screen));
+                new BufferedReader(new StringReader("")), new PrintStream(screen), Duration.ZERO);
         return new OperatorNotificationListener("FO-001", console, requests, JsonMapper.builder().build());
     }
 

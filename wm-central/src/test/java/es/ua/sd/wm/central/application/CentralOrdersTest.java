@@ -38,7 +38,8 @@ class CentralOrdersTest {
         registry.connect("WS-02", "Abril");
         // Las órdenes de Central no llevan operario: no hace falta ni buscarlo ni avisarle.
         irrigations = new IrrigationService(registry, id -> Optional.empty(), sentCommands::add,
-                notification -> { }, telemetry -> { }, savedIrrigations::add, Duration.ofSeconds(5));
+                notification -> { }, telemetry -> { }, savedIrrigations::add, new InMemoryOngoingIrrigations(),
+                Duration.ofSeconds(5));
         orders = new CentralOrders(registry, irrigations);
     }
 

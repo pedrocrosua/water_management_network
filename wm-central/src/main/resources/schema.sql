@@ -25,6 +25,17 @@ CREATE TABLE IF NOT EXISTS irrigations (
     end_reason    TEXT
 );
 
+-- Riegos en marcha: si WM_Central se cae, al volver sabe cuáles seguían regando.
+-- La fila se borra cuando el riego termina y pasa a irrigations.
+CREATE TABLE IF NOT EXISTS ongoing_irrigations (
+    request_id    TEXT PRIMARY KEY,
+    station_id    TEXT    NOT NULL REFERENCES stations (id),
+    operator_id   TEXT REFERENCES operators (id),
+    source        TEXT    NOT NULL,
+    limit_seconds INTEGER NOT NULL,
+    started_at    TEXT    NOT NULL
+);
+
 -- Aún no se usa: preparada para los casos de uso pendientes.
 CREATE TABLE IF NOT EXISTS audit_events (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,

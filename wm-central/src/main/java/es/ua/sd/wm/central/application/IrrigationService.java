@@ -2,10 +2,12 @@ package es.ua.sd.wm.central.application;
 
 import es.ua.sd.wm.central.application.port.out.IrrigationProgressPublisher;
 import es.ua.sd.wm.central.application.port.out.IrrigationRepository;
+import es.ua.sd.wm.central.application.port.out.OngoingIrrigationRepository;
 import es.ua.sd.wm.central.application.port.out.OperatorNotifier;
 import es.ua.sd.wm.central.application.port.out.OperatorRepository;
 import es.ua.sd.wm.central.application.port.out.StationCommandSender;
 import es.ua.sd.wm.central.domain.IrrigationRecord;
+import es.ua.sd.wm.central.domain.OngoingIrrigation;
 import es.ua.sd.wm.central.domain.Operator;
 import es.ua.sd.wm.central.domain.Station;
 import es.ua.sd.wm.common.event.CommandAck;
@@ -56,6 +58,7 @@ public class IrrigationService {
     private final OperatorNotifier notifier;
     private final IrrigationProgressPublisher progress;
     private final IrrigationRepository history;
+    private final OngoingIrrigationRepository ongoingRepository;
     private final Duration answerTimeout;
     // Peticiones enviadas a una estación que esperan su respuesta; una por estación.
     private final Map<String, IrrigationRequest> waitingByStation = new HashMap<>();
@@ -66,14 +69,28 @@ public class IrrigationService {
     public IrrigationService(StationRegistry registry, OperatorRepository operators,
                              StationCommandSender commands, OperatorNotifier notifier,
                              IrrigationProgressPublisher progress, IrrigationRepository history,
-                             Duration answerTimeout) {
+                             OngoingIrrigationRepository ongoingRepository, Duration answerTimeout) {
         this.registry = registry;
         this.operators = operators;
         this.commands = commands;
         this.notifier = notifier;
         this.progress = progress;
         this.history = history;
+        this.ongoingRepository = ongoingRepository;
         this.answerTimeout = answerTimeout;
+        recoverOngoingIrrigations();
+    }
+
+    /**
+     * Si WM_Central se cayó con riegos en marcha, los recupera de SQLite: su telemetría y su final
+     * siguen llegando por Kafka, y así no se pierde ningún riego.
+     */
+    private void recoverOngoingIrrigations() {
+        for (OngoingIrrigation irrigation : ongoingRepository.findAll()) {
+            ongoingByStation.put(irrigation.request().stationId(), irrigation);
+            log.info("Recovered request {} in progress in {}", irrigation.request().requestId(),
+                    irrigation.request().stationId());
+        }
     }
 
     public synchronized void request(IrrigationRequest request) {
@@ -125,7 +142,9 @@ public class IrrigationService {
             return;
         }
         // Empieza con 0 litros en 0 segundos; la telemetría lo irá actualizando.
-        ongoingByStation.put(answer.stationId(), new OngoingIrrigation(request, Instant.now(), 0, 0));
+        OngoingIrrigation irrigation = new OngoingIrrigation(request, Instant.now(), 0, 0);
+        ongoingByStation.put(answer.stationId(), irrigation);
+        ongoingRepository.save(irrigation); // por si WM_Central se cae antes de que termine
         log.info("{} is irrigating for request {}", answer.stationId(), answer.requestId());
         tell(request, NotificationType.AUTHORIZED, answer.stationId() + " is irrigating");
     }
@@ -162,6 +181,18 @@ public class IrrigationService {
     public synchronized void leakReported(String stationId) {
         registry.reportLeak(stationId);
         cutOngoingIrrigation(stationId, EndReason.LEAK);
+    }
+
+    /**
+     * El Monitor de la estación se conecta. Si WM_Central se reinició con un riego en marcha en
+     * esa estación, la estación sigue regando.
+     */
+    public synchronized Station monitorConnected(String stationId, String location) {
+        Station station = registry.connect(stationId, location);
+        if (ongoingByStation.containsKey(stationId)) {
+            station = registry.startIrrigation(stationId).orElseThrow();
+        }
+        return station;
     }
 
     /**
@@ -261,6 +292,7 @@ public class IrrigationService {
         IrrigationRequest request = irrigation.request();
         history.save(new IrrigationRecord(ended.stationId(), request.operatorId(), request.source(),
                 irrigation.startedAt(), Instant.now(), request.limitSeconds(), ended.totalLitres(), ended.reason()));
+        ongoingRepository.delete(request.requestId()); // ya está en el historial
         // Locale.ROOT: los decimales siempre con punto (12.5 L), sea cual sea el idioma del sistema.
         String message = String.format(Locale.ROOT, "%s finished (%s): %.1f L in %d s",
                 ended.stationId(), ended.reason(), ended.totalLitres(), ended.durationSeconds());
@@ -298,18 +330,6 @@ public class IrrigationService {
         if (request.operatorId() != null) {
             notifier.notify(new OperatorNotification(request.requestId(), request.operatorId(),
                     request.stationId(), type, message, summary));
-        }
-    }
-
-    /**
-     * Un riego autorizado con la válvula abierta: la petición, cuándo empezó y lo que lleva regado
-     * según el último segundo que informó el Engine.
-     */
-    private record OngoingIrrigation(IrrigationRequest request, Instant startedAt, double litres, long seconds) {
-
-        /** El mismo riego con los datos de un segundo más. Los records no se modifican: se crea uno nuevo. */
-        OngoingIrrigation withProgress(Telemetry telemetry) {
-            return new OngoingIrrigation(request, startedAt, telemetry.accumulatedLitres(), telemetry.elapsedSeconds());
         }
     }
 }
