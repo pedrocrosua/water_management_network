@@ -4,7 +4,6 @@
 docs
 *.md
 *.pdf
-notas.txt
 .idea
 .vscode
 *.db
