@@ -1,112 +1,430 @@
+/* Colores de los estados, como pide el enunciado, y colores generales de la página. */
 :root {
-    --available: #2e7d32;
-    --leak: #c62828;
-    --out-of-service: #ef6c00;
-    --disconnected: #757575;
-    --text-on-colour: #ffffff;
-    --page: #f4f6f8;
+    --available: #2e7d32;        /* verde */
+    --available-light: #4caf50;  /* verde claro para el parpadeo al regar */
+    --leak: #c62828;             /* rojo */
+    --out-of-service: #e65100;   /* naranja */
+    --disconnected: #616161;     /* gris */
+    --brand: #0b3954;            /* azul oscuro de la cabecera */
+    --accent: #1976d2;           /* azul de los botones principales */
+    --page: #eef2f6;
+    --box: #ffffff;
+    --border: #d9e0e8;
     --text: #1f2933;
+    --text-soft: #5f6c7b;
+    --text-on-colour: #ffffff;
+    --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 2px 8px rgba(16, 24, 40, 0.08);
+}
+
+* {
+    box-sizing: border-box;
 }
 
 body {
     margin: 0;
-    font-family: system-ui, sans-serif;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.4;
     background: var(--page);
     color: var(--text);
 }
 
-header {
-    padding: 16px 24px;
-    background: #ffffff;
-    border-bottom: 1px solid #dde2e6;
-}
-
-h1 {
+h1, h2, h3, p {
     margin: 0;
-    font-size: 1.4rem;
 }
 
+/* Cabecera */
+
+.top-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 32px;
+    background: var(--brand);
+    color: #ffffff;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+/* Gota de agua: un cuadrado con una esquina en punta, girado para que la punta quede arriba. */
+.logo {
+    width: 28px;
+    height: 28px;
+    margin: 4px;
+    border-radius: 0 50% 50% 50%;
+    background: #4fc3f7;
+    transform: rotate(45deg);
+}
+
+.top-bar h1 {
+    font-size: 1.35rem;
+}
+
+.subtitle {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.status {
+    text-align: right;
+}
+
+/* Estado de la conexión con Central: un punto gris, verde o rojo delante del texto. */
 .connection {
-    margin: 4px 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.connection::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #b0bec5;
+}
+
+.connection.online::before {
+    background: #66bb6a;
+}
+
+.connection.offline::before {
+    background: #ef5350;
+}
+
+.last-update {
+    margin-top: 4px;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.75;
+}
+
+/* Distribución: estaciones a la izquierda y actividad a la derecha */
+
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 32px;
+}
+
+.main-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+h2 {
+    margin-bottom: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+}
+
+.box {
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--box);
+    box-shadow: var(--shadow);
+}
+
+.empty {
+    color: var(--text-soft);
+    font-style: italic;
+}
+
+/* Resumen: cuántas estaciones hay en cada estado */
+
+.summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--box);
+    box-shadow: var(--shadow);
+    color: var(--text-soft);
     font-size: 0.9rem;
 }
+
+.summary-item strong {
+    font-size: 1.3rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+}
+
+.summary-item::before {
+    content: "";
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.summary-item.AVAILABLE::before { background: var(--available); }
+.summary-item.IRRIGATING::before { background: var(--available-light); }
+.summary-item.LEAK::before { background: var(--leak); }
+.summary-item.OUT_OF_SERVICE::before { background: var(--out-of-service); }
+.summary-item.DISCONNECTED::before { background: var(--disconnected); }
+
+/* Órdenes */
 
 .orders {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
     align-items: center;
-    margin-top: 12px;
+    gap: 10px;
 }
 
-.orders input {
-    width: 5em;
+.seconds {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 8px;
+    font-weight: 600;
+}
+
+.seconds input {
+    width: 5.5em;
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+}
+
+.hint {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--text-soft);
 }
 
 .order-result {
-    margin: 8px 0 0;
+    margin-top: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
     font-size: 0.9rem;
 }
 
+.order-result.ok {
+    background: #e8f5e9;
+    color: #1b5e20;
+}
+
+.order-result.error {
+    background: #fdecea;
+    color: #b71c1c;
+}
+
 button {
-    padding: 4px 10px;
-    border: 1px solid #c5ccd3;
-    border-radius: 4px;
-    background: #ffffff;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--box);
     color: var(--text);
+    font: inherit;
+    font-weight: 600;
     cursor: pointer;
 }
 
+button:enabled:hover {
+    background: #f1f4f8;
+}
+
+button.primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #ffffff;
+}
+
+button.primary:enabled:hover {
+    background: #1565c0;
+}
+
 button:disabled {
-    opacity: 0.5;
-    cursor: default;
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+button:focus-visible {
+    outline: 3px solid #ffbf47;
+    outline-offset: 2px;
+}
+
+/* Tarjetas de las estaciones */
+
+.stations {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.station {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    color: var(--text-on-colour);
+}
+
+.station-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.station h3 {
+    font-size: 1.35rem;
+}
+
+.state-badge {
+    padding: 3px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.location {
+    font-size: 0.95rem;
+    opacity: 0.92;
+}
+
+.figures {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.figure {
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.figure-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.figure-unit {
+    margin-left: 4px;
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+.detail {
+    min-height: 1.4em;
+    font-size: 0.9rem;
 }
 
 .buttons {
     display: flex;
     flex-wrap: wrap; /* en tarjetas estrechas, los botones bajan a otra línea en lugar de salirse */
     gap: 6px;
-    margin-top: 12px;
 }
 
-.stations {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-    padding: 24px;
-}
-
-.station {
-    padding: 16px;
-    border-radius: 8px;
+.station button {
+    flex: 1; /* los tres botones se reparten el ancho de la tarjeta */
+    padding: 7px 10px;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.15);
     color: var(--text-on-colour);
 }
 
-.station h2 {
-    margin: 0 0 4px;
-    font-size: 1.2rem;
+.station button:enabled:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
-.station p {
-    margin: 4px 0;
+/* Color de fondo de cada estado */
+.station.AVAILABLE { background: var(--available); }
+.station.IRRIGATING { background: var(--available); animation: irrigating 1.2s ease-in-out infinite; }
+.station.LEAK { background: var(--leak); }
+.station.OUT_OF_SERVICE { background: var(--out-of-service); }
+.station.DISCONNECTED { background: var(--disconnected); }
+
+/* Verde parpadeando: cambia el tono del fondo sin apagar el texto. */
+@keyframes irrigating {
+    50% { background: var(--available-light); }
 }
 
-.state-label {
-    font-weight: bold;
-    text-transform: uppercase;
+/* Actividad reciente */
+
+.activity {
+    position: sticky; /* se queda a la vista al bajar por las estaciones */
+    top: 24px;
 }
 
-.progress {
+.activity-list {
+    max-height: 560px;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.activity-list li {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
     font-size: 0.9rem;
-    font-variant-numeric: tabular-nums;
 }
 
-.AVAILABLE { background: var(--available); }
-.IRRIGATING { background: var(--available); animation: blink 1s infinite; }
-.LEAK { background: var(--leak); }
-.OUT_OF_SERVICE { background: var(--out-of-service); }
-.DISCONNECTED { background: var(--disconnected); }
+.activity-list li:last-child {
+    border-bottom: none;
+}
 
-@keyframes blink {
-    50% { opacity: 0.55; }
+.activity-list time {
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-soft);
+}
+
+/* Pantallas estrechas: todo en una sola columna */
+@media (max-width: 900px) {
+    .top-bar {
+        padding: 14px 16px;
+    }
+
+    .status {
+        text-align: left;
+    }
+
+    .layout {
+        grid-template-columns: 1fr;
+        padding: 16px;
+    }
+
+    .activity {
+        position: static;
+    }
 }
