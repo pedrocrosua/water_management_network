@@ -1,5 +1,6 @@
 package es.ua.sd.wm.central.infrastructure.socket;
 
+import es.ua.sd.wm.central.application.IrrigationService;
 import es.ua.sd.wm.central.application.StationRegistry;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -26,14 +27,16 @@ public class StationSocketServer implements SmartLifecycle {
     private static final Logger log = LoggerFactory.getLogger(StationSocketServer.class);
 
     private final StationRegistry registry;
+    private final IrrigationService irrigations;
     private final MonitorSessions sessions;
     private final int configuredPort;
 
     private volatile ServerSocket serverSocket;
 
-    StationSocketServer(StationRegistry registry, MonitorSessions sessions,
+    StationSocketServer(StationRegistry registry, IrrigationService irrigations, MonitorSessions sessions,
                         @Value("${socket.port}") int configuredPort) {
         this.registry = registry;
+        this.irrigations = irrigations;
         this.sessions = sessions;
         this.configuredPort = configuredPort;
     }
@@ -76,7 +79,7 @@ public class StationSocketServer implements SmartLifecycle {
                 socket.setSoTimeout(SILENCE_TIMEOUT_MILLIS);
                 // No se guarda: la sesión vive en los hilos de su FrameChannel y, tras el AUTH,
                 // queda registrada en MonitorSessions.
-                new MonitorSession(socket, registry, sessions);
+                new MonitorSession(socket, registry, irrigations, sessions);
             } catch (IOException exception) {
                 if (isRunning()) {
                     log.warn("Could not accept a connection: {}", exception.getMessage());

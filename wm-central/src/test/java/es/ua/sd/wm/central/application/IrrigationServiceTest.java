@@ -211,6 +211,85 @@ class IrrigationServiceTest {
         assertThat(notifications).isEmpty();
     }
 
+    @Test
+    void leakDuringAnIrrigationStopsItAndSavesTheWaterSoFar() {
+        startIrrigation("R1");
+        service.telemetryReceived(new Telemetry("R1", "WS-01", "FO-001", 20.0, 1.5, 5));
+
+        service.leakReported("WS-01");
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.LEAK);
+        assertThat(sentCommands.getLast())
+                .isEqualTo(new StationCommand("R1", CommandType.STOP, "WS-01", null, null, EndReason.LEAK));
+        assertThat(savedIrrigations).singleElement().satisfies(saved -> {
+            assertThat(saved.totalLitres()).isEqualTo(1.5);
+            assertThat(saved.endReason()).isEqualTo(EndReason.LEAK);
+        });
+        OperatorNotification summary = notifications.getLast();
+        assertThat(summary.type()).isEqualTo(NotificationType.IRRIGATION_ENDED);
+        assertThat(summary.summary()).isEqualTo(new IrrigationEnded("R1", "WS-01", "FO-001", 1.5, 5, EndReason.LEAK));
+        assertThat(summary.message()).isEqualTo("WS-01 finished (LEAK): 1.5 L in 5 s");
+    }
+
+    @Test
+    void endSentByTheEngineAfterTheLeakIsNotSavedTwice() {
+        startIrrigation("R1");
+        service.leakReported("WS-01");
+
+        service.irrigationEnded(new IrrigationEnded("R1", "WS-01", "FO-001", 1.5, 5, EndReason.LEAK));
+
+        assertThat(savedIrrigations).hasSize(1);
+        assertThat(notificationTypes()).containsOnlyOnce(NotificationType.IRRIGATION_ENDED);
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.LEAK);
+    }
+
+    @Test
+    void leakWhileTheStationIsAnsweringClosesTheValveIfItOpens() {
+        service.request(request("R1", "FO-001", "WS-01"));
+        service.leakReported("WS-01");
+
+        service.commandAnswered(new CommandAck("R1", "WS-01", CommandType.START, true, null));
+
+        assertThat(sentCommands.getLast())
+                .isEqualTo(new StationCommand("R1", CommandType.STOP, "WS-01", null, null, null));
+        assertDeniedWith("WS-01 is no longer available (LEAK)");
+        assertThat(savedIrrigations).isEmpty();
+    }
+
+    @Test
+    void repeatedLeakMessageEndsTheIrrigationOnlyOnce() {
+        startIrrigation("R1");
+
+        service.leakReported("WS-01");
+        service.leakReported("WS-01");
+
+        assertThat(savedIrrigations).hasSize(1);
+        assertThat(sentCommands).filteredOn(command -> command.type() == CommandType.STOP).hasSize(1);
+        assertThat(notificationTypes()).containsOnlyOnce(NotificationType.IRRIGATION_ENDED);
+    }
+
+    @Test
+    void leakInAnotherStationDoesNotStopThisIrrigation() {
+        registry.connect("WS-02", "Abril");
+        startIrrigation("R1");
+
+        service.leakReported("WS-02");
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.IRRIGATING);
+        assertThat(sentCommands).hasSize(1); // solo el START de WS-01
+        assertThat(savedIrrigations).isEmpty();
+    }
+
+    @Test
+    void leakWithoutAnIrrigationOnlyChangesTheStation() {
+        service.leakReported("WS-01");
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.LEAK);
+        assertThat(sentCommands).isEmpty();
+        assertThat(savedIrrigations).isEmpty();
+        assertThat(notifications).isEmpty();
+    }
+
     private void startIrrigation(String requestId) {
         service.request(request(requestId, "FO-001", "WS-01"));
         service.commandAnswered(new CommandAck(requestId, "WS-01", CommandType.START, true, null));

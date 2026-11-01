@@ -112,11 +112,22 @@ Java + Spring Boot · Apache Kafka · SQLite · Docker · Railway
   de los riegos. Se actualiza solo, mediante eventos del servidor (SSE).
 - Código: `PanelBroadcaster`, `panel.js`.
 
+**CU-09 · Cortar un riego cuando aparece una avería**
+- Actor: sistema.
+- Flujo:
+  1. Durante un riego, el Monitor avisa a Central de una avería (`LEAK`), porque el Engine
+     responde `KO` o ha dejado de responder.
+  2. Central pone la estación en `LEAK` (rojo en el panel) y ordena al Engine cerrar la
+     válvula (`STOP` con motivo `LEAK`).
+  3. Central no espera la respuesta del Engine, que puede estar caído: guarda el riego con
+     los litros del último segundo que recibió y `end_reason = LEAK`.
+  4. El operario recibe el resumen con el motivo `LEAK`.
+- Código: `MonitorSession`, `IrrigationService.leakReported`, `IrrigationController.execute`.
+
 ### Pendientes
 
 | Caso de uso | Actor |
 |---|---|
-| CU-09 · Detener un riego en curso cuando aparece una avería (`end_reason = LEAK`) | Sistema |
 | CU-10 · Bloquear y activar una estación (`OUT_OF_SERVICE`, naranja) | Operador de Central |
 | CU-11 · Ordenar un riego desde Central | Operador de Central |
 | CU-12 · Enviar peticiones desde un fichero (`stationId,limitSeconds`) | Operario de campo |
@@ -127,7 +138,7 @@ En desarrollo. Están terminados:
 
 - el protocolo de sockets;
 - la conexión y la vigilancia de las estaciones;
-- las averías;
+- las averías, que cortan el riego en curso;
 - el ciclo completo de un riego pedido por un operario;
 - el despliegue de Central y Kafka en Railway.
 

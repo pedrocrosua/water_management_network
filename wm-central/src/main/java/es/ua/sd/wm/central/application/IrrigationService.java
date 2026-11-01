@@ -16,13 +16,14 @@ import es.ua.sd.wm.common.event.NotificationType;
 import es.ua.sd.wm.common.event.OperatorNotification;
 import es.ua.sd.wm.common.event.StationCommand;
 import es.ua.sd.wm.common.event.Telemetry;
+import es.ua.sd.wm.common.model.EndReason;
 import es.ua.sd.wm.common.model.StationState;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -30,18 +31,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Decide si se autoriza una petición de riego.
+ * Decide si se autoriza una petición de riego y sigue cada riego hasta que termina.
  *
  * <p>Pasos: validar la petición, pedir al Engine que abra la válvula (START) y esperar su
  * respuesta. La estación solo pasa a IRRIGATING cuando el Engine confirma. Si no responde a
  * tiempo, se deniega, para que la estación no se quede esperando.
  *
  * <p>Durante el riego, la telemetría va al panel. Cuando el Engine avisa del final, la estación
- * vuelve a estar disponible, el riego se guarda y el operario recibe un resumen.
+ * vuelve a estar disponible, el riego se guarda y el operario recibe un resumen. Si aparece una
+ * fuga, WM_Central corta el riego sin esperar al Engine.
  *
- * <p>Hilos: {@link #request} lo llama el listener de peticiones; {@link #commandAnswered},
- * {@link #telemetryReceived} e {@link #irrigationEnded}, el listener de eventos de las
- * estaciones; y {@code giveUpWaiting}, el temporizador. Por eso los mapas son concurrentes.
+ * <p>Hilos: llaman a esta clase los listeners de Kafka, el temporizador y los Monitores (cuando
+ * avisan de una fuga). Los métodos que usan los mapas son synchronized, o solo se llaman desde uno
+ * que lo es: se ejecutan de uno en uno, así que ninguno ve un riego a medio cambiar.
  */
 public class IrrigationService {
 
@@ -55,9 +57,9 @@ public class IrrigationService {
     private final IrrigationRepository history;
     private final Duration answerTimeout;
     // Peticiones enviadas a una estación que esperan su respuesta; una por estación.
-    private final Map<String, IrrigationRequest> waitingByStation = new ConcurrentHashMap<>();
+    private final Map<String, IrrigationRequest> waitingByStation = new HashMap<>();
     // Riegos en curso; uno por estación.
-    private final Map<String, OngoingIrrigation> ongoingByStation = new ConcurrentHashMap<>();
+    private final Map<String, OngoingIrrigation> ongoingByStation = new HashMap<>();
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
 
     public IrrigationService(StationRegistry registry, OperatorRepository operators,
@@ -73,7 +75,7 @@ public class IrrigationService {
         this.answerTimeout = answerTimeout;
     }
 
-    public void request(IrrigationRequest request) {
+    public synchronized void request(IrrigationRequest request) {
         String stationId = request.stationId();
         log.info("Irrigation request {} for {} ({} s)", request.requestId(), stationId, request.limitSeconds());
         tell(request, NotificationType.RECEIVED,
@@ -85,27 +87,29 @@ public class IrrigationService {
             deny(request, reasonToDeny.get());
             return;
         }
-        if (waitingByStation.putIfAbsent(stationId, request) != null) {
+        if (waitingByStation.containsKey(stationId)) {
             deny(request, stationId + " is already handling another request");
             return;
         }
 
+        waitingByStation.put(stationId, request);
         commands.send(startCommand(request));
         tell(request, NotificationType.AUTHORIZATION_REQUESTED, "Waiting for " + stationId + " to open its valve");
-        // El temporizador no se cancela: si la respuesta ya llegó, giveUpWaiting no encuentra nada que quitar.
+        // El temporizador no se cancela: si la respuesta ya llegó, giveUpWaiting no encuentra la petición.
         timer.schedule(() -> giveUpWaiting(request), answerTimeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     /** Respuesta del Engine a una orden. De momento solo importan las de START. */
-    public void commandAnswered(CommandAck answer) {
+    public synchronized void commandAnswered(CommandAck answer) {
         if (answer.command() != CommandType.START) {
             return;
         }
-        IrrigationRequest request = removeWaitingRequest(answer.stationId(), answer.requestId());
+        IrrigationRequest request = findWaiting(answer.stationId(), answer.requestId());
         if (request == null) {
             closeValveIfOpenedLate(answer);
             return;
         }
+        waitingByStation.remove(answer.stationId());
         if (!answer.accepted()) {
             deny(request, answer.reason());
             return;
@@ -115,40 +119,56 @@ public class IrrigationService {
         Station station = registry.startIrrigation(answer.stationId()).orElseThrow();
         if (station.state() != StationState.IRRIGATING) {
             // Algo pasó mientras se esperaba (por ejemplo, una fuga): hay que volver a cerrar la válvula.
-            commands.send(stopCommand(answer));
+            commands.send(stopCommand(answer.requestId(), answer.stationId(), null));
             deny(request, answer.stationId() + " is no longer available (" + station.state() + ")");
             return;
         }
-        ongoingByStation.put(answer.stationId(), new OngoingIrrigation(request, Instant.now()));
+        // Empieza con 0 litros en 0 segundos; la telemetría lo irá actualizando.
+        ongoingByStation.put(answer.stationId(), new OngoingIrrigation(request, Instant.now(), 0, 0));
         log.info("{} is irrigating for request {}", answer.stationId(), answer.requestId());
         tell(request, NotificationType.AUTHORIZED, answer.stationId() + " is irrigating");
     }
 
     /** Un segundo de riego. Se ignora la telemetría de un riego que WM_Central no conoce. */
-    public void telemetryReceived(Telemetry telemetry) {
-        if (findOngoing(telemetry.stationId(), telemetry.requestId()) != null) {
-            progress.publish(telemetry);
+    public synchronized void telemetryReceived(Telemetry telemetry) {
+        OngoingIrrigation irrigation = findOngoing(telemetry.stationId(), telemetry.requestId());
+        if (irrigation == null) {
+            return;
         }
+        // Se apunta lo que lleva regado: si una fuga corta el riego, es lo que se guarda.
+        ongoingByStation.put(telemetry.stationId(), irrigation.withProgress(telemetry));
+        progress.publish(telemetry);
     }
 
     /** El Engine cerró la válvula: se libera la estación, se guarda el riego y se avisa al operario. */
-    public void irrigationEnded(IrrigationEnded ended) {
+    public synchronized void irrigationEnded(IrrigationEnded ended) {
         OngoingIrrigation irrigation = findOngoing(ended.stationId(), ended.requestId());
-        // remove(clave, valor) solo quita este riego: el mismo riego nunca se cierra dos veces.
-        if (irrigation == null || !ongoingByStation.remove(ended.stationId(), irrigation)) {
+        if (irrigation == null) {
+            // Por ejemplo, el aviso del Engine después de que una fuga cortara el riego.
             log.info("{} ended request {}, which was not in progress here", ended.stationId(), ended.requestId());
             return;
         }
+        ongoingByStation.remove(ended.stationId());
         registry.endIrrigation(ended.stationId());
+        saveAndNotify(irrigation, ended);
+    }
 
+    /**
+     * El Monitor avisa de una fuga: la estación pasa a LEAK y, si estaba regando, el riego se
+     * corta. No se espera al Engine, porque puede estar caído: se guarda lo que llevaba regado.
+     */
+    public synchronized void leakReported(String stationId) {
+        registry.reportLeak(stationId);
+        OngoingIrrigation irrigation = ongoingByStation.remove(stationId);
+        if (irrigation == null) {
+            return; // no estaba regando
+        }
         IrrigationRequest request = irrigation.request();
-        history.save(new IrrigationRecord(ended.stationId(), request.operatorId(), request.source(),
-                irrigation.startedAt(), Instant.now(), request.limitSeconds(), ended.totalLitres(), ended.reason()));
-        // Locale.ROOT: los decimales siempre con punto (12.5 L), sea cual sea el idioma del sistema.
-        String message = String.format(Locale.ROOT, "%s finished (%s): %.1f L in %d s",
-                ended.stationId(), ended.reason(), ended.totalLitres(), ended.durationSeconds());
-        log.info(message);
-        tell(request, NotificationType.IRRIGATION_ENDED, message, ended);
+        log.warn("Leak in {}: stopping request {}", stationId, request.requestId());
+        commands.send(stopCommand(request.requestId(), stationId, EndReason.LEAK));
+        IrrigationEnded ended = new IrrigationEnded(request.requestId(), stationId, request.operatorId(),
+                irrigation.litres(), irrigation.seconds(), EndReason.LEAK);
+        saveAndNotify(irrigation, ended);
     }
 
     /** Para el temporizador al apagar WM_Central. */
@@ -178,28 +198,27 @@ public class IrrigationService {
     }
 
     /** La estación no respondió a tiempo. Solo deniega si la petición sigue esperando. */
-    private void giveUpWaiting(IrrigationRequest request) {
-        if (waitingByStation.remove(request.stationId(), request)) {
+    private synchronized void giveUpWaiting(IrrigationRequest request) {
+        if (findWaiting(request.stationId(), request.requestId()) != null) {
+            waitingByStation.remove(request.stationId());
             deny(request, request.stationId() + " did not answer");
         }
     }
 
-    /** Quita la petición que esperaba esta respuesta. Devuelve null si ya no estaba. */
-    private IrrigationRequest removeWaitingRequest(String stationId, String requestId) {
+    /** Devuelve la petición que espera esa respuesta, o null si no la hay. */
+    private IrrigationRequest findWaiting(String stationId, String requestId) {
         IrrigationRequest waiting = waitingByStation.get(stationId);
         if (waiting == null || !waiting.requestId().equals(requestId)) {
             return null;
         }
-        // La respuesta y el temporizador compiten por quitarla: solo uno de los dos lo consigue.
-        boolean removedHere = waitingByStation.remove(stationId, waiting);
-        return removedHere ? waiting : null;
+        return waiting;
     }
 
     /** Si el Engine abrió la válvula para una petición ya denegada, se le ordena cerrarla. */
     private void closeValveIfOpenedLate(CommandAck answer) {
         if (answer.accepted()) {
             log.warn("{} accepted request {} too late; sending STOP", answer.stationId(), answer.requestId());
-            commands.send(stopCommand(answer));
+            commands.send(stopCommand(answer.requestId(), answer.stationId(), null));
         }
     }
 
@@ -212,15 +231,27 @@ public class IrrigationService {
         return irrigation;
     }
 
+    /** Guarda el riego terminado y envía el resumen al operario. */
+    private void saveAndNotify(OngoingIrrigation irrigation, IrrigationEnded ended) {
+        IrrigationRequest request = irrigation.request();
+        history.save(new IrrigationRecord(ended.stationId(), request.operatorId(), request.source(),
+                irrigation.startedAt(), Instant.now(), request.limitSeconds(), ended.totalLitres(), ended.reason()));
+        // Locale.ROOT: los decimales siempre con punto (12.5 L), sea cual sea el idioma del sistema.
+        String message = String.format(Locale.ROOT, "%s finished (%s): %.1f L in %d s",
+                ended.stationId(), ended.reason(), ended.totalLitres(), ended.durationSeconds());
+        log.info(message);
+        tell(request, NotificationType.IRRIGATION_ENDED, message, ended);
+    }
+
     private static StationCommand startCommand(IrrigationRequest request) {
         // El último campo (motivo de parada) solo se usa en STOP.
         return new StationCommand(request.requestId(), CommandType.START, request.stationId(),
                 request.operatorId(), request.limitSeconds(), null);
     }
 
-    private static StationCommand stopCommand(CommandAck answer) {
-        // STOP no lleva operario ni tiempo límite; tampoco motivo, de momento.
-        return new StationCommand(answer.requestId(), CommandType.STOP, answer.stationId(), null, null, null);
+    /** STOP no lleva operario ni tiempo límite. Sin motivo (null), el Engine lo cuenta como parada manual. */
+    private static StationCommand stopCommand(String requestId, String stationId, EndReason reason) {
+        return new StationCommand(requestId, CommandType.STOP, stationId, null, null, reason);
     }
 
     private void deny(IrrigationRequest request, String reason) {
@@ -240,7 +271,15 @@ public class IrrigationService {
         }
     }
 
-    /** Una petición autorizada con la válvula abierta, y cuándo se abrió. */
-    private record OngoingIrrigation(IrrigationRequest request, Instant startedAt) {
+    /**
+     * Un riego autorizado con la válvula abierta: la petición, cuándo empezó y lo que lleva regado
+     * según el último segundo que informó el Engine.
+     */
+    private record OngoingIrrigation(IrrigationRequest request, Instant startedAt, double litres, long seconds) {
+
+        /** El mismo riego con los datos de un segundo más. Los records no se modifican: se crea uno nuevo. */
+        OngoingIrrigation withProgress(Telemetry telemetry) {
+            return new OngoingIrrigation(request, startedAt, telemetry.accumulatedLitres(), telemetry.elapsedSeconds());
+        }
     }
 }

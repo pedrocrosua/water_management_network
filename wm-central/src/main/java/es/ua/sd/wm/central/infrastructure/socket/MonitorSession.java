@@ -1,5 +1,6 @@
 package es.ua.sd.wm.central.infrastructure.socket;
 
+import es.ua.sd.wm.central.application.IrrigationService;
 import es.ua.sd.wm.central.application.StationRegistry;
 import es.ua.sd.wm.central.domain.Station;
 import es.ua.sd.wm.common.protocol.FrameChannel;
@@ -30,6 +31,7 @@ final class MonitorSession {
     private static final Logger log = LoggerFactory.getLogger(MonitorSession.class);
 
     private final StationRegistry registry;
+    private final IrrigationService irrigations;
     private final MonitorSessions sessions;
     private final String remoteAddress;
     // Las respuestas salen de una en una, en orden, desde un hilo propio: quien llama
@@ -43,8 +45,10 @@ final class MonitorSession {
     private volatile String claimedStationId;
     private volatile boolean authenticated;
 
-    MonitorSession(Socket socket, StationRegistry registry, MonitorSessions sessions) throws IOException {
+    MonitorSession(Socket socket, StationRegistry registry, IrrigationService irrigations,
+                   MonitorSessions sessions) throws IOException {
         this.registry = registry;
+        this.irrigations = irrigations;
         this.sessions = sessions;
         this.remoteAddress = socket.getRemoteSocketAddress().toString();
         channelReady.complete(new FrameChannel(socket, this::handle, this::onClosed));
@@ -75,7 +79,8 @@ final class MonitorSession {
             case HEALTH -> log.debug("HEALTH from {}", claimedStationId);
             case LEAK -> {
                 log.warn("{} reports a LEAK", claimedStationId);
-                registry.reportLeak(claimedStationId);
+                // Pasa por IrrigationService porque, además de poner la estación en LEAK, corta su riego.
+                irrigations.leakReported(claimedStationId);
             }
             case LEAK_CLEARED -> {
                 log.info("{} reports the leak is fixed", claimedStationId);
