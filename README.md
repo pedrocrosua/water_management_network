@@ -226,20 +226,6 @@ En desarrollo. Están terminados:
 
 Queda pendiente la memoria de la práctica.
 
-## Despliegue local
-
-La [guía de despliegue local](docs/LOCAL_DEPLOYMENT.md) explica el arranque manual,
-las comprobaciones y la parada. Para automatizarlo:
-
-```bash
-./scripts/local-up.sh
-```
-
-Después abre una terminal por consola y ejecuta `./scripts/local-console.sh ws1-engine`,
-`./scripts/local-console.sh ws2-engine` y `./scripts/local-console.sh fo1`.
-El panel está en **http://localhost:8080**. Para parar, cierra las consolas con `Ctrl+C`
-y ejecuta `./scripts/local-down.sh`; se conserva SQLite.
-
 ## Despliegue en el laboratorio
 
 `WM_Central` y Kafka se ejecutan en la nube (Railway). Cada PC del laboratorio solo
@@ -268,17 +254,3 @@ tarda unos minutos.
 Si Central y Kafka se ejecutan en un equipo del aula en lugar de en la nube, arráncalos
 en ese equipo con `PUBLIC_HOST=<su ip> docker compose up -d --build kafka wm-central` y
 usa en `lab.env` esa IP con los puertos `5000` y `29092`.
-
-## Compilación y pruebas
-
-Con Docker disponible, desde la raíz del proyecto:
-
-```bash
-docker compose run --rm maven mvn -B verify
-```
-
-Para probar únicamente el módulo común:
-
-```bash
-docker compose run --rm maven mvn -B -pl wm-common -am test
-```
