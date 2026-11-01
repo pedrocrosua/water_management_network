@@ -12,6 +12,8 @@ build/
 # Secretos y configuración local (nunca al repositorio)
 .env
 *.env
+# lab.env sí se sube: solo lleva las direcciones de Central y Kafka en Railway
+!lab.env
 *.pem
 *.key
 

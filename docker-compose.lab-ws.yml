@@ -1,11 +1,11 @@
-# Lab PC with Watering Stations. Each station is a WM_WS_M + WM_WS_E pair that runs in its
-# own Compose project (wm-<station id>), so one PC can run as many stations as needed.
-# Start them with the script, one terminal per application:
+# PC del laboratorio con las Watering Stations. Cada estación es una pareja WM_WS_M + WM_WS_E
+# que va en su propio proyecto de Compose (wm-<id de la estación>), así un PC puede
+# ejecutar todas las que hagan falta. Se arrancan con el script, una terminal por aplicación:
 #
 #   ./scripts/lab-ws.sh monitor WS-01 "Parque de Canalejas"
 #   ./scripts/lab-ws.sh engine WS-01
 #
-# Central and Kafka run elsewhere: their addresses come from lab.env (see lab.env.example).
+# Central y Kafka se ejecutan en otro sitio: sus direcciones están en lab.env.
 
 services:
 
@@ -20,7 +20,7 @@ services:
               "--central.host=${CENTRAL_HOST:?set CENTRAL_HOST in lab.env}", "--central.port=${CENTRAL_PORT:-5000}",
               "--station.id=${STATION_ID:?set STATION_ID}", "--station.location=${STATION_LOCATION:-}"]
 
-  # Interactive: the menu needs its own terminal
+  # Interactivo: el menú necesita su propia terminal
   engine:
     image: wm-ws-engine:lab
     build:

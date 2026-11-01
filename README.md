@@ -242,12 +242,8 @@ y ejecuta `./scripts/local-down.sh`; se conserva SQLite.
 ## Despliegue en el laboratorio
 
 `WM_Central` y Kafka se ejecutan en la nube (Railway). Cada PC del laboratorio solo
-necesita Docker, git y una copia del repositorio. En cada PC, una sola vez, crea `lab.env`
-y rellena las direcciones de Central y Kafka:
-
-```bash
-cp lab.env.example lab.env
-```
+necesita Docker, git y una copia del repositorio. Las direcciones de Central y Kafka ya
+están en `lab.env`; si cambian en Railway, se cambian en ese fichero.
 
 **PC de las estaciones.** Cada estación necesita dos terminales: primero su Monitor y
 después su Engine.

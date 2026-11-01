@@ -6,7 +6,7 @@ usage="Usage: $0 OPERATOR_ID"
 if [[ $# == 1 && ( "$1" == --help || "$1" == -h ) ]]; then
     printf '%s\n' "$usage"
     printf 'Run one Field Operator (WM_FO) in this terminal, e.g. %s FO-001.\n' "$0"
-    printf 'Kafka address is read from lab.env (see lab.env.example).\n'
+    printf 'Kafka address is read from lab.env.\n'
     exit 0
 fi
 if [[ $# != 1 ]]; then
@@ -22,7 +22,7 @@ fi
 project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$project_dir"
 
-# One Compose project per operator, so several can run on the same PC.
+# Un proyecto de Compose por operario, así pueden ejecutarse varios en el mismo PC.
 compose=(docker compose -p "wm-${operator_id,,}" -f "$project_dir/docker-compose.lab-fo.yml")
 if [[ -f "$project_dir/lab.env" ]]; then
     compose+=(--env-file "$project_dir/lab.env")
@@ -37,8 +37,8 @@ if docker container inspect "$container" >/dev/null 2>&1; then
     exit 1
 fi
 
-# Closing the terminal must stop the application as Ctrl+C does (simulated crash):
-# without this, its container would keep running in the background.
+# Cerrar la terminal tiene que parar la aplicación igual que Ctrl+C (caída simulada):
+# sin esto, su contenedor seguiría ejecutándose en segundo plano.
 stop_container() {
     docker rm -f "$container" >/dev/null 2>&1 || true
 }

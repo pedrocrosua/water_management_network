@@ -1,14 +1,14 @@
-# Lab PC with Field Operators. Each operator runs in its own Compose project
-# (wm-<operator id>), so one PC can run as many operators as needed.
-# Start each one in its own terminal with the script:
+# PC del laboratorio con los Field Operators. Cada operario va en su propio proyecto
+# de Compose (wm-<id del operario>), así un PC puede ejecutar todos los que hagan falta.
+# Cada uno se arranca en su propia terminal con el script:
 #
 #   ./scripts/lab-fo.sh FO-001
 #
-# Kafka runs elsewhere: its address comes from lab.env (see lab.env.example).
+# Kafka se ejecuta en otro sitio: su dirección está en lab.env.
 
 services:
 
-  # Interactive: the menu needs its own terminal
+  # Interactivo: el menú necesita su propia terminal
   operator:
     image: wm-fo:lab
     build:
