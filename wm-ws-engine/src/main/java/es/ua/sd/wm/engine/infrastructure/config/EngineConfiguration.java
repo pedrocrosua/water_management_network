@@ -1,10 +1,12 @@
 package es.ua.sd.wm.engine.infrastructure.config;
 
-import es.ua.sd.wm.engine.application.MonitorLink;
 import es.ua.sd.wm.engine.application.IrrigationController;
+import es.ua.sd.wm.engine.application.ManualIrrigation;
+import es.ua.sd.wm.engine.application.MonitorLink;
 import es.ua.sd.wm.engine.domain.LeakSensor;
 import es.ua.sd.wm.engine.domain.Valve;
 import es.ua.sd.wm.engine.infrastructure.console.EngineConsole;
+import es.ua.sd.wm.engine.infrastructure.kafka.KafkaIrrigationRequestSender;
 import es.ua.sd.wm.engine.infrastructure.kafka.KafkaStationEventPublisher;
 import es.ua.sd.wm.engine.infrastructure.kafka.StationCommandListener;
 import es.ua.sd.wm.engine.infrastructure.monitor.SocketMonitorConnection;
@@ -57,6 +59,12 @@ class EngineConfiguration {
         return clock;
     }
 
+    @Bean
+    ManualIrrigation manualIrrigation(IrrigationController irrigations, LeakSensor sensor,
+                                      KafkaTemplate<String, String> kafka, JsonMapper json) {
+        return new ManualIrrigation(irrigations, sensor, new KafkaIrrigationRequestSender(kafka, json));
+    }
+
     /** stop() sale limpiamente del grupo de consumidores al apagar la aplicación. */
     @Bean(destroyMethod = "stop")
     StationCommandListener stationCommandListener(ConsumerFactory<String, String> consumerFactory,
@@ -66,24 +74,29 @@ class EngineConfiguration {
 
     /**
      * stop() cierra la conexión con el Monitor al apagar la aplicación. Cuando el Monitor dice qué
-     * estación es, el Engine empieza a leer las órdenes de esa estación.
+     * estación es, el Engine empieza a leer las órdenes de esa estación y ya puede pedir riegos.
      */
     @Bean(destroyMethod = "stop")
     MonitorLink monitorLink(@Value("${monitor.host}") String monitorHost,
                             @Value("${monitor.port}") int monitorPort,
-                            LeakSensor sensor, StationCommandListener commandListener) {
+                            LeakSensor sensor, StationCommandListener commandListener,
+                            ManualIrrigation manual) {
         return new MonitorLink(
                 new SocketMonitorConnection(monitorHost, monitorPort, sensor),
-                station -> commandListener.listenFor(station.id()),
+                station -> {
+                    commandListener.listenFor(station.id());
+                    manual.stationIdentified(station.id());
+                },
                 RETRY_DELAY,
                 CONNECTION_CHECK_INTERVAL);
     }
 
     /** El menú va en su propio hilo; el bucle de conexión mantiene vivo el hilo principal. */
     @Bean
-    ApplicationRunner startEngine(LeakSensor sensor, IrrigationController irrigations, MonitorLink link) {
+    ApplicationRunner startEngine(LeakSensor sensor, IrrigationController irrigations, ManualIrrigation manual,
+                                  MonitorLink link) {
         return arguments -> {
-            EngineConsole console = new EngineConsole(sensor, irrigations,
+            EngineConsole console = new EngineConsole(sensor, irrigations, manual,
                     new BufferedReader(new InputStreamReader(System.in)), System.out);
             Thread.ofPlatform().daemon().name("engine-console").start(console::run);
             link.run();

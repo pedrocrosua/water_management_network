@@ -305,6 +305,16 @@ class IrrigationServiceTest {
     }
 
     @Test
+    void deniedRequestFromTheStationMenuIsAnsweredToTheStation() {
+        registry.block("WS-01");
+
+        service.request(new IrrigationRequest("R1", IrrigationSource.STATION, null, "WS-01", 30));
+
+        assertThat(sentCommands).containsExactly(new StationCommand("R1", CommandType.DENIED, "WS-01", null, null, null));
+        assertThat(notifications).isEmpty();
+    }
+
+    @Test
     void leakWithoutAnIrrigationOnlyChangesTheStation() {
         service.leakReported("WS-01");
 

@@ -43,9 +43,15 @@ public class IrrigationController {
         switch (command.type()) {
             case START -> start(command);
             case STOP -> stopByOrder(command);
-            // WM_Central solo envía START y STOP al Engine.
-            default -> log.warn("{} is not supported yet", command.type());
+            case DENIED -> log.warn(">>> WM_Central did not authorize the manual irrigation (request {})",
+                    command.requestId());
+            // WM_Central no envía otras órdenes al Engine.
+            default -> log.warn("{} is not supported", command.type());
         }
+    }
+
+    public synchronized boolean isIrrigating() {
+        return current != null;
     }
 
     /** Se llama una vez por segundo. Durante el riego, informa del caudal y comprueba el tiempo límite. */

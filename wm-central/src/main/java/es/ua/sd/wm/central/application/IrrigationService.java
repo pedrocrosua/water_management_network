@@ -17,6 +17,7 @@ import es.ua.sd.wm.common.event.OperatorNotification;
 import es.ua.sd.wm.common.event.StationCommand;
 import es.ua.sd.wm.common.event.Telemetry;
 import es.ua.sd.wm.common.model.EndReason;
+import es.ua.sd.wm.common.model.IrrigationSource;
 import es.ua.sd.wm.common.model.StationState;
 import java.time.Duration;
 import java.time.Instant;
@@ -271,6 +272,11 @@ public class IrrigationService {
     private void deny(IrrigationRequest request, String reason) {
         log.info("Request {} denied: {}", request.requestId(), reason);
         tell(request, NotificationType.DENIED, reason);
+        if (request.source() == IrrigationSource.STATION) {
+            // Se pidió desde el menú de la estación: no hay operario, así que se le contesta a ella.
+            commands.send(new StationCommand(request.requestId(), CommandType.DENIED, request.stationId(),
+                    null, null, null));
+        }
     }
 
     private void tell(IrrigationRequest request, NotificationType type, String message) {

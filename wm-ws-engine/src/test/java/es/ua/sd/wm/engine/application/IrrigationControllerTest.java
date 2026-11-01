@@ -14,6 +14,9 @@ import es.ua.sd.wm.engine.domain.Valve;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
 /** La lógica de riego del Engine, con un caudal fijo y una lista en memoria en lugar de Kafka. */
 class IrrigationControllerTest {
@@ -113,6 +116,16 @@ class IrrigationControllerTest {
     void nothingIsPublishedWhileNotIrrigating() {
         controller.tick();
 
+        assertThat(published).isEmpty();
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void deniedManualIrrigationIsShownAndTheValveStaysClosed(CapturedOutput screen) {
+        controller.execute(new StationCommand("R1", CommandType.DENIED, "WS-01", null, null, null));
+
+        assertThat(screen).contains("WM_Central did not authorize the manual irrigation");
+        assertThat(valve.isOpen()).isFalse();
         assertThat(published).isEmpty();
     }
 

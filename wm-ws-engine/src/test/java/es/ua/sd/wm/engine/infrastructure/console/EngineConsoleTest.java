@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import es.ua.sd.wm.common.event.CommandType;
 import es.ua.sd.wm.common.event.IrrigationEnded;
+import es.ua.sd.wm.common.event.IrrigationRequest;
 import es.ua.sd.wm.common.event.StationCommand;
 import es.ua.sd.wm.common.event.StationEvent;
 import es.ua.sd.wm.engine.application.IrrigationController;
+import es.ua.sd.wm.engine.application.ManualIrrigation;
 import es.ua.sd.wm.engine.domain.LeakSensor;
 import es.ua.sd.wm.engine.domain.Valve;
 import java.io.BufferedReader;
@@ -24,6 +26,8 @@ class EngineConsoleTest {
     private final List<StationEvent> published = new ArrayList<>();
     private final IrrigationController irrigations =
             new IrrigationController(new Valve(), sensor, () -> 20.0, published::add);
+    private final List<IrrigationRequest> sentRequests = new ArrayList<>();
+    private final ManualIrrigation manual = new ManualIrrigation(irrigations, sensor, sentRequests::add);
     private final ByteArrayOutputStream screen = new ByteArrayOutputStream();
 
     @Test
@@ -66,7 +70,29 @@ class EngineConsoleTest {
         assertThat(screen.toString()).contains("The station is not irrigating");
     }
 
+    @Test
+    void optionFourAsksForTheSecondsAndRequestsAManualIrrigation() {
+        manual.stationIdentified("WS-01");
+
+        type("4\n30\n");
+
+        assertThat(sentRequests).singleElement()
+                .satisfies(request -> assertThat(request.limitSeconds()).isEqualTo(30));
+        assertThat(screen.toString()).contains("Seconds:", "Manual irrigation of 30 s requested to WM_Central");
+    }
+
+    @Test
+    void optionFourWithWrongSecondsRequestsNothing() {
+        manual.stationIdentified("WS-01");
+
+        type("4\nabc\n4\n0\n");
+
+        assertThat(sentRequests).isEmpty();
+        assertThat(screen.toString()).contains("Seconds must be a positive whole number");
+    }
+
     private void type(String lines) {
-        new EngineConsole(sensor, irrigations, new BufferedReader(new StringReader(lines)), new PrintStream(screen)).run();
+        new EngineConsole(sensor, irrigations, manual,
+                new BufferedReader(new StringReader(lines)), new PrintStream(screen)).run();
     }
 }

@@ -13,5 +13,8 @@ public enum CommandType {
     BLOCK,
 
     /** Salir de fuera de servicio. */
-    ACTIVATE
+    ACTIVATE,
+
+    /** Respuesta a un riego pedido desde el menú de la propia estación: WM_Central no lo autoriza. */
+    DENIED
 }

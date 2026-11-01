@@ -34,7 +34,7 @@ Java + Spring Boot · Apache Kafka · SQLite · Docker · Railway
 | Actor | Quién es | Desde dónde actúa |
 |---|---|---|
 | Operario de campo | Persona que pide y sigue los riegos | `WM_FO` (menú de consola) |
-| Técnico de la estación | Persona junto a la estación que provoca o repara averías | `WM_WS_E` (menú de consola) |
+| Técnico de la estación | Persona junto a la estación que provoca o repara averías y pide riegos manuales | `WM_WS_E` (menú de consola) |
 | Operador de Central | Persona que vigila la red | Panel web de `WM_Central` (`http://localhost:8080`) |
 | Reloj | El paso del tiempo | Límite de un riego, latidos de salud |
 
@@ -86,7 +86,11 @@ Java + Spring Boot · Apache Kafka · SQLite · Docker · Railway
   - Si alguna validación falla, el Engine rechaza la orden o no responde en 10 s, el operario
     recibe `DENIED` con el motivo.
   - Si el Engine confirma tarde, Central le envía `STOP`.
-- Código: `IrrigationRequests`, `IrrigationService.request` / `commandAnswered`, `IrrigationController.execute`.
+- Riego manual: el técnico de la estación pide el riego con la opción `4` del Engine. La
+  petición va a Central con origen `STATION` y sigue el mismo flujo. Como no hay operario, si
+  Central la deniega se lo dice a la propia estación con la orden `DENIED`.
+- Código: `IrrigationRequests`, `ManualIrrigation`, `IrrigationService.request` / `commandAnswered`,
+  `IrrigationController.execute`.
 
 **CU-06 · Seguir el progreso de un riego**
 - Actores: operario de campo y operador de Central.
@@ -159,6 +163,7 @@ En desarrollo. Están terminados:
 - las averías, que cortan el riego en curso;
 - el ciclo completo de un riego pedido por un operario;
 - las órdenes del panel de Central: regar, bloquear y activar una o todas las estaciones;
+- el riego manual pedido desde el menú de la propia estación;
 - el despliegue de Central y Kafka en Railway.
 
 Quedan pendientes los casos de uso de la lista anterior.
