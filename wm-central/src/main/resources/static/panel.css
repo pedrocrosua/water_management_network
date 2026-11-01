@@ -64,6 +64,7 @@ button:disabled {
 
 .buttons {
     display: flex;
+    flex-wrap: wrap; /* en tarjetas estrechas, los botones bajan a otra línea en lugar de salirse */
     gap: 6px;
     margin-top: 12px;
 }

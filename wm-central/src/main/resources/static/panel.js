@@ -63,7 +63,8 @@ async function sendOrder(order, stationId) {
         params.set('stationId', stationId);
     }
     if (order === 'irrigate') {
-        if (!(Number(secondsInput.value) >= 1)) {
+        const seconds = Number(secondsInput.value);
+        if (!Number.isInteger(seconds) || seconds < 1) { // Central solo acepta segundos enteros
             orderResult.textContent = 'Indica los segundos de riego (1 o más)';
             return;
         }
