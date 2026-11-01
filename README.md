@@ -148,11 +148,21 @@ Java + Spring Boot · Apache Kafka · SQLite · Docker · Railway
   `Regar todas` lo pide en cada estación disponible.
 - Código: `OrderController`, `CentralOrders.irrigate`, `IrrigationService.request`.
 
-### Pendientes
-
-| Caso de uso | Actor |
-|---|---|
-| CU-12 · Enviar peticiones desde un fichero (`stationId,limitSeconds`) | Operario de campo |
+**CU-12 · Enviar peticiones desde un fichero**
+- Actor: operario de campo.
+- Flujo:
+  1. Opción `3` del menú del FO: ruta del fichero, por ejemplo `requests/example.csv`
+     (la carpeta `requests/` se monta en el contenedor del FO).
+  2. El fichero tiene una petición por línea, `stationId,limitSeconds`. Se saltan las líneas
+     vacías y las que empiezan por `#`.
+  3. El FO envía la primera petición y espera a que termine, con éxito o denegada. Después
+     espera 4 s y envía la siguiente.
+  4. Al acabar muestra cuántas peticiones ha enviado.
+- Alternativos:
+  - Una línea con formato incorrecto se muestra y se salta.
+  - Si una petición no termina en su duración más 30 s, el FO muestra "Imposible conectar
+    con WM_Central" y pasa a la siguiente.
+- Código: `RequestFile`, `IrrigationRequests.requestAndWait` / `notificationReceived`.
 
 ## Estado
 
@@ -164,9 +174,10 @@ En desarrollo. Están terminados:
 - el ciclo completo de un riego pedido por un operario;
 - las órdenes del panel de Central: regar, bloquear y activar una o todas las estaciones;
 - el riego manual pedido desde el menú de la propia estación;
+- las peticiones leídas de un fichero;
 - el despliegue de Central y Kafka en Railway.
 
-Quedan pendientes los casos de uso de la lista anterior.
+Queda pendiente mejorar cómo responde cada módulo cuando se cae otro.
 
 ## Despliegue local
 

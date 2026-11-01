@@ -4,10 +4,14 @@ import es.ua.sd.wm.common.event.OperatorNotification;
 import es.ua.sd.wm.common.event.StationStatus;
 import es.ua.sd.wm.common.event.Telemetry;
 import es.ua.sd.wm.operator.application.IrrigationRequests;
+import es.ua.sd.wm.operator.application.RequestFile;
 import es.ua.sd.wm.operator.domain.StationBoard;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 
@@ -16,14 +20,16 @@ public class OperatorConsole {
 
     private final String operatorId;
     private final IrrigationRequests requests;
+    private final RequestFile requestFile;
     private final StationBoard board;
     private final BufferedReader input;
     private final PrintStream output;
 
-    public OperatorConsole(String operatorId, IrrigationRequests requests, StationBoard board,
-                           BufferedReader input, PrintStream output) {
+    public OperatorConsole(String operatorId, IrrigationRequests requests, RequestFile requestFile,
+                           StationBoard board, BufferedReader input, PrintStream output) {
         this.operatorId = operatorId;
         this.requests = requests;
+        this.requestFile = requestFile;
         this.board = board;
         this.input = input;
         this.output = output;
@@ -37,6 +43,7 @@ public class OperatorConsole {
             switch (option.trim()) {
                 case "1" -> listStations();
                 case "2" -> requestIrrigation();
+                case "3" -> requestFromFile();
                 case "" -> printMenu();
                 default -> print("Unknown option: " + option);
             }
@@ -81,10 +88,32 @@ public class OperatorConsole {
         }
     }
 
+    /** CU-12: el menú queda ocupado hasta terminar el fichero; las notificaciones se siguen viendo. */
+    private void requestFromFile() {
+        print("File:");
+        String path = readLine();
+        if (path == null) {
+            return;
+        }
+        List<String> lines;
+        try {
+            lines = Files.readAllLines(Path.of(path.trim()));
+        } catch (IOException | InvalidPathException cannotRead) {
+            print("Cannot read the file " + path.trim());
+            return;
+        }
+        try {
+            requestFile.run(lines, this::print);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt(); // la aplicación se está cerrando
+        }
+    }
+
     private void printMenu() {
         print("=== WM_FO " + operatorId + " ===");
         print("1 + Enter: list stations");
         print("2 + Enter: request an irrigation");
+        print("3 + Enter: request the irrigations of a file (for example requests/example.csv)");
     }
 
     /** synchronized: las líneas del menú y las notificaciones de Kafka nunca se mezclan en una línea. */

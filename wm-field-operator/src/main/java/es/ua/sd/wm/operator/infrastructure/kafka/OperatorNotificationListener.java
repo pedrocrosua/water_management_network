@@ -2,6 +2,7 @@ package es.ua.sd.wm.operator.infrastructure.kafka;
 
 import es.ua.sd.wm.common.event.OperatorNotification;
 import es.ua.sd.wm.common.event.Topics;
+import es.ua.sd.wm.operator.application.IrrigationRequests;
 import es.ua.sd.wm.operator.infrastructure.console.OperatorConsole;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
@@ -23,11 +24,14 @@ class OperatorNotificationListener {
 
     private final String operatorId;
     private final OperatorConsole console;
+    private final IrrigationRequests requests;
     private final JsonMapper json;
 
-    OperatorNotificationListener(@Value("${operator.id}") String operatorId, OperatorConsole console, JsonMapper json) {
+    OperatorNotificationListener(@Value("${operator.id}") String operatorId, OperatorConsole console,
+                                 IrrigationRequests requests, JsonMapper json) {
         this.operatorId = operatorId;
         this.console = console;
+        this.requests = requests;
         this.json = json;
     }
 
@@ -37,7 +41,9 @@ class OperatorNotificationListener {
             return;
         }
         try {
-            console.show(json.readValue(record.value(), OperatorNotification.class));
+            OperatorNotification notification = json.readValue(record.value(), OperatorNotification.class);
+            console.show(notification);
+            requests.notificationReceived(notification); // por si el modo fichero espera esta petición
         } catch (JacksonException | IllegalArgumentException invalid) {
             log.warn("Ignored an invalid notification: {}", record.value());
         }

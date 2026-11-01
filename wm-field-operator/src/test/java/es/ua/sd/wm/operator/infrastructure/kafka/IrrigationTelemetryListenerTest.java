@@ -3,12 +3,14 @@ package es.ua.sd.wm.operator.infrastructure.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import es.ua.sd.wm.operator.application.IrrigationRequests;
+import es.ua.sd.wm.operator.application.RequestFile;
 import es.ua.sd.wm.operator.domain.StationBoard;
 import es.ua.sd.wm.operator.infrastructure.console.OperatorConsole;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -16,8 +18,9 @@ import tools.jackson.databind.json.JsonMapper;
 class IrrigationTelemetryListenerTest {
 
     private final ByteArrayOutputStream screen = new ByteArrayOutputStream();
-    private final OperatorConsole console = new OperatorConsole("FO-001",
-            new IrrigationRequests("FO-001", request -> { }), new StationBoard(),
+    private final IrrigationRequests requests = new IrrigationRequests("FO-001", request -> { });
+    private final OperatorConsole console = new OperatorConsole("FO-001", requests,
+            new RequestFile(requests, Duration.ZERO, Duration.ZERO), new StationBoard(),
             new BufferedReader(new StringReader("")), new PrintStream(screen));
     private final IrrigationTelemetryListener listener =
             new IrrigationTelemetryListener("FO-001", console, JsonMapper.builder().build());

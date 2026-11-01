@@ -20,3 +20,5 @@ services:
     tty: true
     command: ["--operator.id=${OPERATOR_ID:?set OPERATOR_ID}",
               "--spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP:?set KAFKA_BOOTSTRAP in lab.env}"]
+    volumes:
+      - ./requests:/app/requests:ro

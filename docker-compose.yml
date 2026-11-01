@@ -106,6 +106,8 @@ services:
     stdin_open: true
     tty: true
     command: ["--operator.id=FO-001", "--spring.kafka.bootstrap-servers=kafka:9092"]
+    volumes:
+      - ./requests:/app/requests:ro
 
   fo2:
     build:
@@ -117,6 +119,8 @@ services:
     stdin_open: true
     tty: true
     command: ["--operator.id=FO-002", "--spring.kafka.bootstrap-servers=kafka:9092"]
+    volumes:
+      - ./requests:/app/requests:ro
 
   # Build tool: nothing is compiled on the host.
   # Runs with the host user's id so target/ is not left owned by root. Downloaded
