@@ -34,6 +34,9 @@ public class ManualIrrigation {
         if (stationId == null) {
             return "The Engine does not know its station yet: is WM_WS_M running?";
         }
+        if (irrigations.isOutOfOrder()) {
+            return "Averiada: no irrigation is accepted until WM_WS_M comes back";
+        }
         if (sensor.isLeaking()) {
             return "The station has a leak";
         }

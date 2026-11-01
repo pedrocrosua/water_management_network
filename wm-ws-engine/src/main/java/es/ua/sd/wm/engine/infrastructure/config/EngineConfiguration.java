@@ -75,18 +75,21 @@ class EngineConfiguration {
     /**
      * stop() cierra la conexión con el Monitor al apagar la aplicación. Cuando el Monitor dice qué
      * estación es, el Engine empieza a leer las órdenes de esa estación y ya puede pedir riegos.
+     * Si el Monitor se cae, la estación queda averiada hasta que vuelva.
      */
     @Bean(destroyMethod = "stop")
     MonitorLink monitorLink(@Value("${monitor.host}") String monitorHost,
                             @Value("${monitor.port}") int monitorPort,
                             LeakSensor sensor, StationCommandListener commandListener,
-                            ManualIrrigation manual) {
+                            ManualIrrigation manual, IrrigationController irrigations) {
         return new MonitorLink(
                 new SocketMonitorConnection(monitorHost, monitorPort, sensor),
                 station -> {
                     commandListener.listenFor(station.id());
                     manual.stationIdentified(station.id());
+                    irrigations.monitorBack();
                 },
+                irrigations::monitorLost,
                 RETRY_DELAY,
                 CONNECTION_CHECK_INTERVAL);
     }

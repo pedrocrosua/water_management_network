@@ -129,6 +129,39 @@ class IrrigationControllerTest {
         assertThat(published).isEmpty();
     }
 
+    @Test
+    void losingTheMonitorDuringAnIrrigationClosesTheValve() {
+        controller.execute(start("R1", 60));
+        controller.tick();
+
+        controller.monitorLost();
+
+        assertThat(valve.isOpen()).isFalse();
+        assertThat(published.getLast()).isEqualTo(
+                new IrrigationEnded("R1", "WS-01", "FO-001", 0.5, 1, EndReason.DISCONNECTED));
+    }
+
+    @Test
+    void startIsRejectedWhileTheMonitorIsLost() {
+        controller.monitorLost();
+
+        controller.execute(start("R1", 60));
+
+        assertThat(valve.isOpen()).isFalse();
+        assertThat(published).containsExactly(
+                new CommandAck("R1", "WS-01", CommandType.START, false, "Averiada: WM_WS_M is not running"));
+    }
+
+    @Test
+    void startIsAcceptedAgainWhenTheMonitorIsBack() {
+        controller.monitorLost();
+        controller.monitorBack();
+
+        controller.execute(start("R1", 60));
+
+        assertThat(valve.isOpen()).isTrue();
+    }
+
     private static StationCommand start(String requestId, int limitSeconds) {
         return new StationCommand(requestId, CommandType.START, "WS-01", "FO-001", limitSeconds, null);
     }

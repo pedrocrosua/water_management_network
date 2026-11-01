@@ -163,6 +163,15 @@ public class IrrigationService {
         cutOngoingIrrigation(stationId, EndReason.LEAK);
     }
 
+    /**
+     * Se cae el Monitor de la estación: pasa a DISCONNECTED y, si estaba regando, el riego se
+     * corta igual que con una fuga.
+     */
+    public synchronized void monitorDisconnected(String stationId) {
+        registry.disconnect(stationId);
+        cutOngoingIrrigation(stationId, EndReason.DISCONNECTED);
+    }
+
     /** WM_Central bloquea la estación (CU-10): pasa a naranja y, si estaba regando, el riego se corta. */
     public synchronized void stationBlocked(String stationId) {
         registry.block(stationId);

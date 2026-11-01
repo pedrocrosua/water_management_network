@@ -55,4 +55,13 @@ class ManualIrrigationTest {
         assertThat(manual.request(30)).isEqualTo("The station is already irrigating");
         assertThat(sentRequests).isEmpty();
     }
+
+    @Test
+    void nothingIsRequestedWhileTheMonitorIsLost() {
+        manual.stationIdentified("WS-01");
+        irrigations.monitorLost();
+
+        assertThat(manual.request(30)).isEqualTo("Averiada: no irrigation is accepted until WM_WS_M comes back");
+        assertThat(sentRequests).isEmpty();
+    }
 }

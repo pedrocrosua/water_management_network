@@ -15,16 +15,21 @@ public class MonitorLink {
 
     private final MonitorConnection monitor;
     private final Consumer<StationIdentity> onIdentified;
+    private final Runnable onLost;
     private final Duration retryDelay;
     private final Duration checkInterval;
 
     private volatile boolean running = true;
 
-    /** onIdentified se ejecuta cada vez que un Monitor le dice al Engine a qué estación pertenece. */
-    public MonitorLink(MonitorConnection monitor, Consumer<StationIdentity> onIdentified,
+    /**
+     * onIdentified se ejecuta cada vez que un Monitor le dice al Engine a qué estación pertenece,
+     * y onLost cada vez que se pierde una conexión que ya estaba hecha.
+     */
+    public MonitorLink(MonitorConnection monitor, Consumer<StationIdentity> onIdentified, Runnable onLost,
                        Duration retryDelay, Duration checkInterval) {
         this.monitor = monitor;
         this.onIdentified = onIdentified;
+        this.onLost = onLost;
         this.retryDelay = retryDelay;
         this.checkInterval = checkInterval;
     }
@@ -61,6 +66,7 @@ public class MonitorLink {
             Thread.sleep(checkInterval);
         }
         if (running) {
+            onLost.run(); // el Monitor se ha caído: la estación queda averiada hasta que vuelva
             throw new IOException("connection closed");
         }
     }

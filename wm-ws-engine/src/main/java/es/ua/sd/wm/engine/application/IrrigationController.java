@@ -30,6 +30,8 @@ public class IrrigationController {
     private final StationEventPublisher publisher;
 
     private Irrigation current;
+    // true mientras el Engine no tiene Monitor: la estación está averiada y no admite riegos.
+    private boolean outOfOrder;
 
     public IrrigationController(Valve valve, LeakSensor sensor, FlowMeter flowMeter, StationEventPublisher publisher) {
         this.valve = valve;
@@ -52,6 +54,27 @@ public class IrrigationController {
 
     public synchronized boolean isIrrigating() {
         return current != null;
+    }
+
+    public synchronized boolean isOutOfOrder() {
+        return outOfOrder;
+    }
+
+    /** Se cae el Monitor: se cierra la válvula si estaba regando y no se admiten riegos hasta que vuelva. */
+    public synchronized void monitorLost() {
+        outOfOrder = true;
+        log.warn(">>> Averiada: lost the connection with WM_WS_M. No irrigation is accepted until it comes back");
+        if (current != null) {
+            end(EndReason.DISCONNECTED);
+        }
+    }
+
+    /** El Monitor vuelve: la estación admite riegos otra vez. */
+    public synchronized void monitorBack() {
+        if (outOfOrder) {
+            outOfOrder = false;
+            log.info(">>> WM_WS_M is back: the station accepts irrigations again");
+        }
     }
 
     /** Se llama una vez por segundo. Durante el riego, informa del caudal y comprueba el tiempo límite. */
@@ -81,7 +104,9 @@ public class IrrigationController {
     }
 
     private void start(StationCommand command) {
-        if (sensor.isLeaking()) {
+        if (outOfOrder) {
+            reject(command, "Averiada: WM_WS_M is not running");
+        } else if (sensor.isLeaking()) {
             reject(command, "The station has a leak");
         } else if (current != null) {
             reject(command, "The station is already irrigating");

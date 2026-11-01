@@ -324,6 +324,30 @@ class IrrigationServiceTest {
         assertThat(notifications).isEmpty();
     }
 
+    @Test
+    void monitorDownDuringAnIrrigationStopsItAndSavesTheWaterSoFar() {
+        startIrrigation("R1");
+        service.telemetryReceived(new Telemetry("R1", "WS-01", "FO-001", 20.0, 1.5, 5));
+
+        service.monitorDisconnected("WS-01");
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.DISCONNECTED);
+        assertThat(sentCommands.getLast())
+                .isEqualTo(new StationCommand("R1", CommandType.STOP, "WS-01", null, null, EndReason.DISCONNECTED));
+        assertThat(savedIrrigations).singleElement()
+                .satisfies(saved -> assertThat(saved.endReason()).isEqualTo(EndReason.DISCONNECTED));
+        assertThat(notifications.getLast().message()).isEqualTo("WS-01 finished (DISCONNECTED): 1.5 L in 5 s");
+    }
+
+    @Test
+    void monitorDownWithoutAnIrrigationOnlyChangesTheStation() {
+        service.monitorDisconnected("WS-01");
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.DISCONNECTED);
+        assertThat(sentCommands).isEmpty();
+        assertThat(savedIrrigations).isEmpty();
+    }
+
     private void startIrrigation(String requestId) {
         service.request(request(requestId, "FO-001", "WS-01"));
         service.commandAnswered(new CommandAck(requestId, "WS-01", CommandType.START, true, null));

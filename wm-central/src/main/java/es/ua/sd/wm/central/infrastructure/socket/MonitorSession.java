@@ -125,7 +125,7 @@ final class MonitorSession {
         outbox.shutdown();
         String stationId = claimedStationId;
         if (stationId != null && sessions.removeIfCurrent(stationId, this)) {
-            registry.disconnect(stationId);
+            irrigations.monitorDisconnected(stationId);
             log.info("{} disconnected", stationId);
         } else {
             log.info("Connection from {} closed", remoteAddress);

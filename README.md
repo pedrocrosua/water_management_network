@@ -164,6 +164,19 @@ Java + Spring Boot · Apache Kafka · SQLite · Docker · Railway
     con WM_Central" y pasa a la siguiente.
 - Código: `RequestFile`, `IrrigationRequests.requestAndWait` / `notificationReceived`.
 
+## Caídas de los módulos
+
+**Se cae el Monitor (`WM_WS_M`)**
+- Central marca la estación como `DISCONNECTED` (gris, "Desconectada"). Si estaba regando,
+  corta el riego como en CU-09 (`STOP` con motivo `DISCONNECTED`), lo guarda con los litros
+  del último segundo y avisa al operario.
+- El Engine nota que ha perdido su Monitor: cierra la válvula si estaba abierta, muestra
+  "Averiada" y no admite riegos, ni siquiera manuales.
+- Cuando el Monitor vuelve, se autentica de nuevo en Central y el Engine se reconecta solo:
+  la estación vuelve a estar disponible sin reiniciar nada más.
+- Código: `MonitorSession`, `IrrigationService.monitorDisconnected`, `MonitorLink`,
+  `IrrigationController.monitorLost` / `monitorBack`.
+
 ## Estado
 
 En desarrollo. Están terminados:
@@ -175,9 +188,10 @@ En desarrollo. Están terminados:
 - las órdenes del panel de Central: regar, bloquear y activar una o todas las estaciones;
 - el riego manual pedido desde el menú de la propia estación;
 - las peticiones leídas de un fichero;
+- la caída del Monitor de una estación;
 - el despliegue de Central y Kafka en Railway.
 
-Queda pendiente mejorar cómo responde cada módulo cuando se cae otro.
+Queda pendiente mejorar cómo responden los módulos cuando se cae el Engine, un FO o Central.
 
 ## Despliegue local
 

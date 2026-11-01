@@ -22,7 +22,9 @@ class MonitorLinkTest {
 
     private final FakeMonitor monitor = new FakeMonitor();
     private final List<StationIdentity> identified = new CopyOnWriteArrayList<>();
-    private final MonitorLink link = new MonitorLink(monitor, identified::add, SHORT, SHORT);
+    private final AtomicInteger lostConnections = new AtomicInteger();
+    private final MonitorLink link = new MonitorLink(monitor, identified::add,
+            () -> lostConnections.incrementAndGet(), SHORT, SHORT);
     private Thread running;
 
     @AfterEach
@@ -49,6 +51,7 @@ class MonitorLinkTest {
 
         await().atMost(Duration.ofSeconds(2)).until(() -> !identified.isEmpty());
         assertThat(monitor.connections.get()).isEqualTo(4);
+        assertThat(lostConnections.get()).isZero(); // nunca llegó a conectar: no se avisa de nada
     }
 
     @Test
@@ -59,6 +62,16 @@ class MonitorLinkTest {
         monitor.close();
 
         await().atMost(Duration.ofSeconds(2)).until(() -> monitor.connections.get() == 2);
+    }
+
+    @Test
+    void warnsWhenAnEstablishedConnectionIsLost() {
+        startLink();
+        await().atMost(Duration.ofSeconds(2)).until(() -> monitor.connections.get() == 1);
+
+        monitor.close();
+
+        await().atMost(Duration.ofSeconds(2)).until(() -> lostConnections.get() == 1);
     }
 
     private void startLink() {
