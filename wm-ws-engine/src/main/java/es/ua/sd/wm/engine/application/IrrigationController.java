@@ -6,10 +6,12 @@ import es.ua.sd.wm.common.event.StationCommand;
 import es.ua.sd.wm.common.event.Telemetry;
 import es.ua.sd.wm.common.model.EndReason;
 import es.ua.sd.wm.engine.application.port.out.FlowMeter;
+import es.ua.sd.wm.engine.application.port.out.IrrigationBackup;
 import es.ua.sd.wm.engine.application.port.out.StationEventPublisher;
 import es.ua.sd.wm.engine.domain.Irrigation;
 import es.ua.sd.wm.engine.domain.LeakSensor;
 import es.ua.sd.wm.engine.domain.Valve;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,16 +30,19 @@ public class IrrigationController {
     private final LeakSensor sensor;
     private final FlowMeter flowMeter;
     private final StationEventPublisher publisher;
+    private final IrrigationBackup backup;
 
     private Irrigation current;
     // true mientras el Engine no tiene Monitor: la estación está averiada y no admite riegos.
     private boolean outOfOrder;
 
-    public IrrigationController(Valve valve, LeakSensor sensor, FlowMeter flowMeter, StationEventPublisher publisher) {
+    public IrrigationController(Valve valve, LeakSensor sensor, FlowMeter flowMeter, StationEventPublisher publisher,
+                                IrrigationBackup backup) {
         this.valve = valve;
         this.sensor = sensor;
         this.flowMeter = flowMeter;
         this.publisher = publisher;
+        this.backup = backup;
     }
 
     public synchronized void execute(StationCommand command) {
@@ -69,6 +74,24 @@ public class IrrigationController {
         }
     }
 
+    /**
+     * Al arrancar: si el Engine se cayó durante un riego, envía a WM_Central el estado final que
+     * dejó guardado (lo regado hasta el último segundo) y borra la copia.
+     */
+    public synchronized void recoverInterruptedIrrigation() {
+        Optional<Telemetry> saved = backup.load();
+        if (saved.isEmpty()) {
+            return;
+        }
+        Telemetry last = saved.get();
+        // LEAK: para WM_Central, un Engine caído es una avería de la estación.
+        publisher.publish(new IrrigationEnded(last.requestId(), last.stationId(), last.operatorId(),
+                last.accumulatedLitres(), last.elapsedSeconds(), EndReason.LEAK));
+        log.warn(">>> Recovered request {} interrupted by a failure: {} L in {} s. Final state sent to WM_Central",
+                last.requestId(), String.format("%.1f", last.accumulatedLitres()), last.elapsedSeconds());
+        backup.delete();
+    }
+
     /** El Monitor vuelve: la estación admite riegos otra vez. */
     public synchronized void monitorBack() {
         if (outOfOrder) {
@@ -84,8 +107,10 @@ public class IrrigationController {
         }
         double flow = flowMeter.readLitresPerMinute();
         current.addSecond(flow);
-        publisher.publish(new Telemetry(current.requestId(), current.stationId(), current.operatorId(),
-                flow, current.litres(), current.elapsedSeconds()));
+        Telemetry lastSecond = new Telemetry(current.requestId(), current.stationId(), current.operatorId(),
+                flow, current.litres(), current.elapsedSeconds());
+        publisher.publish(lastSecond);
+        backup.save(lastSecond); // si el Engine se cae, lo regado hasta aquí no se pierde
         log.info(">>> Irrigating: {} L/min, {} L in {} s",
                 String.format("%.1f", flow), String.format("%.1f", current.litres()), current.elapsedSeconds());
 
@@ -138,6 +163,7 @@ public class IrrigationController {
         log.info(">>> Valve CLOSED ({}): {} L in {} s",
                 reason, String.format("%.1f", current.litres()), current.elapsedSeconds());
         current = null;
+        backup.delete();
     }
 
     private void accept(StationCommand command) {

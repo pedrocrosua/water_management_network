@@ -5,6 +5,7 @@ import es.ua.sd.wm.engine.application.ManualIrrigation;
 import es.ua.sd.wm.engine.application.MonitorLink;
 import es.ua.sd.wm.engine.domain.LeakSensor;
 import es.ua.sd.wm.engine.domain.Valve;
+import es.ua.sd.wm.engine.infrastructure.backup.FileIrrigationBackup;
 import es.ua.sd.wm.engine.infrastructure.console.EngineConsole;
 import es.ua.sd.wm.engine.infrastructure.kafka.KafkaIrrigationRequestSender;
 import es.ua.sd.wm.engine.infrastructure.kafka.KafkaStationEventPublisher;
@@ -13,6 +14,7 @@ import es.ua.sd.wm.engine.infrastructure.monitor.SocketMonitorConnection;
 import es.ua.sd.wm.engine.infrastructure.sensor.SimulatedFlowMeter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,9 +48,10 @@ class EngineConfiguration {
 
     @Bean
     IrrigationController irrigationController(Valve valve, LeakSensor sensor,
-                                              KafkaTemplate<String, String> kafka, JsonMapper json) {
+                                              KafkaTemplate<String, String> kafka, JsonMapper json,
+                                              @Value("${engine.backup-file}") String backupFile) {
         return new IrrigationController(valve, sensor, new SimulatedFlowMeter(),
-                new KafkaStationEventPublisher(kafka, json));
+                new KafkaStationEventPublisher(kafka, json), new FileIrrigationBackup(Path.of(backupFile), json));
     }
 
     /** Avanza el riego una vez por segundo (telemetría y tiempo límite). */
@@ -99,6 +102,7 @@ class EngineConfiguration {
     ApplicationRunner startEngine(LeakSensor sensor, IrrigationController irrigations, ManualIrrigation manual,
                                   MonitorLink link) {
         return arguments -> {
+            irrigations.recoverInterruptedIrrigation(); // por si el Engine se cayó durante un riego
             EngineConsole console = new EngineConsole(sensor, irrigations, manual,
                     new BufferedReader(new InputStreamReader(System.in)), System.out);
             Thread.ofPlatform().daemon().name("engine-console").start(console::run);

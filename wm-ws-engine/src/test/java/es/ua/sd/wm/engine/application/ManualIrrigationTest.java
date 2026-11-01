@@ -17,7 +17,7 @@ class ManualIrrigationTest {
 
     private final LeakSensor sensor = new LeakSensor();
     private final IrrigationController irrigations =
-            new IrrigationController(new Valve(), sensor, () -> 20.0, event -> { });
+            new IrrigationController(new Valve(), sensor, () -> 20.0, event -> { }, new InMemoryIrrigationBackup());
     private final List<IrrigationRequest> sentRequests = new ArrayList<>();
     private final ManualIrrigation manual = new ManualIrrigation(irrigations, sensor, sentRequests::add);
 

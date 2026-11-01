@@ -32,3 +32,8 @@ services:
     tty: true
     command: ["--monitor.host=monitor", "--monitor.port=6000",
               "--spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP:?set KAFKA_BOOTSTRAP in lab.env}"]
+    volumes:
+      - engine-data:/app/data
+
+volumes:
+  engine-data:

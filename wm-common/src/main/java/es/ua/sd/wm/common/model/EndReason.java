@@ -9,7 +9,7 @@ public enum EndReason {
     /** Alguien lo paró desde el menú de la estación. */
     MANUAL_STOP,
 
-    /** Se detectó una fuga durante el riego. */
+    /** Avería durante el riego: una fuga o un Engine que deja de responder. */
     LEAK,
 
     /** WM_Central dejó la estación fuera de servicio. */

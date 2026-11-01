@@ -71,6 +71,8 @@ services:
     tty: true
     command: ["--monitor.host=ws1-monitor", "--monitor.port=6000",
               "--spring.kafka.bootstrap-servers=kafka:9092"]
+    volumes:
+      - ws1-engine-data:/app/data
 
   ws2-monitor:
     build:
@@ -94,6 +96,8 @@ services:
     tty: true
     command: ["--monitor.host=ws2-monitor", "--monitor.port=6000",
               "--spring.kafka.bootstrap-servers=kafka:9092"]
+    volumes:
+      - ws2-engine-data:/app/data
 
   # Interactive: run each one in its own terminal with "docker compose run --rm fo1"
   fo1:
@@ -139,3 +143,5 @@ services:
 
 volumes:
   wm-data:
+  ws1-engine-data:
+  ws2-engine-data:

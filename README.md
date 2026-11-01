@@ -177,6 +177,18 @@ Java + Spring Boot · Apache Kafka · SQLite · Docker · Railway
 - Código: `MonitorSession`, `IrrigationService.monitorDisconnected`, `MonitorLink`,
   `IrrigationController.monitorLost` / `monitorBack`.
 
+**Se cae el Engine (`WM_WS_E`)**
+- El Monitor deja de recibir respuesta y avisa a Central de una avería (`LEAK`). Central pone
+  la estación en rojo, corta el riego, lo guarda con los litros del último segundo y avisa al
+  operario.
+- Mientras riega, el Engine guarda cada segundo lo regado en `data/irrigation.json`, en un
+  volumen de Docker que sobrevive a la caída.
+- Al volver a arrancar, si encuentra ese fichero, envía a Central el estado final del riego
+  (`IRRIGATION_ENDED` con los litros guardados) y lo borra. El Monitor ve que el Engine
+  responde otra vez y la estación vuelve a estar disponible.
+- Código: `FileIrrigationBackup`, `IrrigationController.tick` / `recoverInterruptedIrrigation`,
+  `StationMonitor.engineLost` / `engineAnswered`.
+
 ## Estado
 
 En desarrollo. Están terminados:
@@ -188,10 +200,10 @@ En desarrollo. Están terminados:
 - las órdenes del panel de Central: regar, bloquear y activar una o todas las estaciones;
 - el riego manual pedido desde el menú de la propia estación;
 - las peticiones leídas de un fichero;
-- la caída del Monitor de una estación;
+- la caída del Monitor o del Engine de una estación;
 - el despliegue de Central y Kafka en Railway.
 
-Queda pendiente mejorar cómo responden los módulos cuando se cae el Engine, un FO o Central.
+Queda pendiente mejorar cómo responden los módulos cuando se cae un FO o Central.
 
 ## Despliegue local
 

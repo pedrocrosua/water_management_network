@@ -26,8 +26,9 @@ class IrrigationControllerTest {
     private final Valve valve = new Valve();
     private final LeakSensor sensor = new LeakSensor();
     private final List<StationEvent> published = new ArrayList<>();
+    private final InMemoryIrrigationBackup backup = new InMemoryIrrigationBackup();
     private final IrrigationController controller =
-            new IrrigationController(valve, sensor, () -> FLOW_LITRES_PER_MINUTE, published::add);
+            new IrrigationController(valve, sensor, () -> FLOW_LITRES_PER_MINUTE, published::add, backup);
 
     @Test
     void startOpensTheValveAndIsAccepted() {
@@ -160,6 +161,43 @@ class IrrigationControllerTest {
         controller.execute(start("R1", 60));
 
         assertThat(valve.isOpen()).isTrue();
+    }
+
+    @Test
+    void everySecondOfIrrigationIsAlsoSavedInTheBackup() {
+        controller.execute(start("R1", 60));
+
+        controller.tick();
+
+        assertThat(backup.saved).isEqualTo(new Telemetry("R1", "WS-01", "FO-001", 30.0, 0.5, 1));
+    }
+
+    @Test
+    void theBackupIsDeletedWhenTheIrrigationEnds() {
+        controller.execute(start("R1", 60));
+        controller.tick();
+
+        controller.stopFromStation();
+
+        assertThat(backup.saved).isNull();
+    }
+
+    @Test
+    void afterAFailureTheSavedIrrigationIsSentAsItsFinalState() {
+        backup.saved = new Telemetry("R1", "WS-01", "FO-001", 20.0, 3.5, 7);
+
+        controller.recoverInterruptedIrrigation();
+
+        assertThat(published).containsExactly(new IrrigationEnded("R1", "WS-01", "FO-001", 3.5, 7, EndReason.LEAK));
+        assertThat(backup.saved).isNull();
+        assertThat(valve.isOpen()).isFalse();
+    }
+
+    @Test
+    void nothingIsSentWhenNoIrrigationWasInterrupted() {
+        controller.recoverInterruptedIrrigation();
+
+        assertThat(published).isEmpty();
     }
 
     private static StationCommand start(String requestId, int limitSeconds) {

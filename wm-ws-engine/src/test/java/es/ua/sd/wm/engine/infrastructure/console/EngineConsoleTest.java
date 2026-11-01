@@ -7,6 +7,7 @@ import es.ua.sd.wm.common.event.IrrigationEnded;
 import es.ua.sd.wm.common.event.IrrigationRequest;
 import es.ua.sd.wm.common.event.StationCommand;
 import es.ua.sd.wm.common.event.StationEvent;
+import es.ua.sd.wm.engine.application.InMemoryIrrigationBackup;
 import es.ua.sd.wm.engine.application.IrrigationController;
 import es.ua.sd.wm.engine.application.ManualIrrigation;
 import es.ua.sd.wm.engine.domain.LeakSensor;
@@ -25,7 +26,7 @@ class EngineConsoleTest {
     private final LeakSensor sensor = new LeakSensor();
     private final List<StationEvent> published = new ArrayList<>();
     private final IrrigationController irrigations =
-            new IrrigationController(new Valve(), sensor, () -> 20.0, published::add);
+            new IrrigationController(new Valve(), sensor, () -> 20.0, published::add, new InMemoryIrrigationBackup());
     private final List<IrrigationRequest> sentRequests = new ArrayList<>();
     private final ManualIrrigation manual = new ManualIrrigation(irrigations, sensor, sentRequests::add);
     private final ByteArrayOutputStream screen = new ByteArrayOutputStream();

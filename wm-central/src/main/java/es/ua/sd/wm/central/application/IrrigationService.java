@@ -145,8 +145,9 @@ public class IrrigationService {
     public synchronized void irrigationEnded(IrrigationEnded ended) {
         OngoingIrrigation irrigation = findOngoing(ended.stationId(), ended.requestId());
         if (irrigation == null) {
-            // Por ejemplo, el aviso del Engine después de que una fuga cortara el riego.
-            log.info("{} ended request {}, which was not in progress here", ended.stationId(), ended.requestId());
+            // Por ejemplo, el final que envía un Engine al recuperarse, cuando la avería ya cortó el riego.
+            log.info("{} sent the end of request {} ({}), which was already closed here",
+                    ended.stationId(), ended.requestId(), ended.reason());
             return;
         }
         ongoingByStation.remove(ended.stationId());
