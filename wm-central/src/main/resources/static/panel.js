@@ -68,7 +68,7 @@ async function sendOrder(order, stationId) {
             orderResult.textContent = 'Indica los segundos de riego (1 o más)';
             return;
         }
-        params.set('seconds', secondsInput.value);
+        params.set('seconds', seconds); // el número ya convertido: "30.0" se envía como 30
     }
     try {
         const response = await fetch('/api/orders/' + order + '?' + params, { method: 'POST' });
