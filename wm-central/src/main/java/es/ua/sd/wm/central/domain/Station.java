@@ -54,6 +54,27 @@ public record Station(String id, String location, StationState state, boolean ou
         return state == StationState.LEAK ? ready() : this;
     }
 
+    /**
+     * WM_Central la bloquea: se ve naranja ("Fuera de Servicio") y no admite riegos.
+     * Si está desconectada o con una fuga se queda así; el naranja se verá al conectar o al reparar.
+     */
+    public Station blocked() {
+        StationState newState = state;
+        if (state == StationState.AVAILABLE || state == StationState.IRRIGATING) {
+            newState = StationState.OUT_OF_SERVICE;
+        }
+        return new Station(id, location, newState, true);
+    }
+
+    /** WM_Central la vuelve a activar: verde otra vez si estaba fuera de servicio. */
+    public Station activated() {
+        StationState newState = state;
+        if (state == StationState.OUT_OF_SERVICE) {
+            newState = StationState.AVAILABLE;
+        }
+        return new Station(id, location, newState, false);
+    }
+
     /** La estación ha enviado dónde está instalada. */
     public Station locatedAt(String newLocation) {
         return new Station(id, newLocation, state, outOfService);

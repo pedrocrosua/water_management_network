@@ -31,6 +31,43 @@ h1 {
     font-size: 0.9rem;
 }
 
+.orders {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.orders input {
+    width: 5em;
+}
+
+.order-result {
+    margin: 8px 0 0;
+    font-size: 0.9rem;
+}
+
+button {
+    padding: 4px 10px;
+    border: 1px solid #c5ccd3;
+    border-radius: 4px;
+    background: #ffffff;
+    color: var(--text);
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.buttons {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+}
+
 .stations {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

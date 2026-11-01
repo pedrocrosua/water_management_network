@@ -10,6 +10,8 @@ const STATE_LABELS = {
 
 const stationsContainer = document.getElementById('stations');
 const connectionText = document.getElementById('connection');
+const secondsInput = document.getElementById('seconds');
+const orderResult = document.getElementById('order-result');
 
 // Prefijo en el id del HTML: el id de una estación nunca coincide con otro elemento de la página.
 function cardId(stationId) {
@@ -31,7 +33,48 @@ function showStation(station) {
     card.replaceChildren(
         textElement('h2', station.id),
         textElement('p', station.location),
-        textElement('p', STATE_LABELS[station.state], 'state-label'));
+        textElement('p', STATE_LABELS[station.state], 'state-label'),
+        orderButtons(station));
+}
+
+// Botones de cada tarjeta. Solo se pueden pulsar los que tienen sentido en el estado actual.
+function orderButtons(station) {
+    const buttons = document.createElement('div');
+    buttons.className = 'buttons';
+    buttons.append(
+        orderButton('Regar', 'irrigate', station.id, station.state !== 'AVAILABLE'),
+        orderButton('Bloquear', 'block', station.id, station.outOfService),
+        orderButton('Activar', 'activate', station.id, !station.outOfService));
+    return buttons;
+}
+
+function orderButton(text, order, stationId, disabled) {
+    const button = textElement('button', text);
+    button.type = 'button';
+    button.disabled = disabled;
+    button.addEventListener('click', () => sendOrder(order, stationId));
+    return button;
+}
+
+// Envía una orden a Central (CU-10 y CU-11). Sin estación, la orden es para todas.
+async function sendOrder(order, stationId) {
+    const params = new URLSearchParams();
+    if (stationId) {
+        params.set('stationId', stationId);
+    }
+    if (order === 'irrigate') {
+        if (!(Number(secondsInput.value) >= 1)) {
+            orderResult.textContent = 'Indica los segundos de riego (1 o más)';
+            return;
+        }
+        params.set('seconds', secondsInput.value);
+    }
+    try {
+        const response = await fetch('/api/orders/' + order + '?' + params, { method: 'POST' });
+        orderResult.textContent = await response.text();
+    } catch (error) {
+        orderResult.textContent = 'Imposible conectar con WM_Central';
+    }
 }
 
 // Mientras una estación riega, su tarjeta muestra quién lo pidió, el caudal, el agua y el tiempo.
@@ -47,7 +90,7 @@ function showTelemetry(telemetry) {
     let progress = card.querySelector('.progress');
     if (!progress) {
         progress = textElement('p', '', 'progress');
-        card.appendChild(progress);
+        card.insertBefore(progress, card.querySelector('.buttons')); // encima de los botones
     }
     progress.textContent = text;
 }
@@ -60,6 +103,10 @@ function textElement(tag, text, cssClass) {
     }
     return element;
 }
+
+document.getElementById('irrigate-all').addEventListener('click', () => sendOrder('irrigate'));
+document.getElementById('block-all').addEventListener('click', () => sendOrder('block'));
+document.getElementById('activate-all').addEventListener('click', () => sendOrder('activate'));
 
 const stream = new EventSource('/api/stations/stream');
 

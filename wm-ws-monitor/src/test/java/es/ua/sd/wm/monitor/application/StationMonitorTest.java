@@ -35,6 +35,13 @@ class StationMonitorTest {
     }
 
     @Test
+    void stateIsShownWithTheSameColourAndTextAsThePanel() {
+        assertThat(StationMonitor.stateText("OUT_OF_SERVICE")).isEqualTo("NARANJA - Fuera de Servicio");
+        assertThat(StationMonitor.stateText("AVAILABLE")).isEqualTo("VERDE - Disponible");
+        assertThat(StationMonitor.stateText("SOMETHING_NEW")).isEqualTo("SOMETHING_NEW");
+    }
+
+    @Test
     void authenticatesAndThenReportsHealthRegularly() {
         startMonitor();
 

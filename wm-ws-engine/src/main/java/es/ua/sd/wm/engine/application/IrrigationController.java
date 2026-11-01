@@ -83,8 +83,9 @@ public class IrrigationController {
             valve.open();
             current = new Irrigation(command.requestId(), command.stationId(), command.operatorId(),
                     command.limitSeconds());
-            log.info(">>> Valve OPEN: irrigating for operator {} (limit {} s)",
-                    command.operatorId(), command.limitSeconds());
+            // Los riegos pedidos desde WM_Central no tienen operario.
+            String operator = command.operatorId() != null ? command.operatorId() : "none";
+            log.info(">>> Valve OPEN: irrigating for operator {} (limit {} s)", operator, command.limitSeconds());
             accept(command);
         }
     }

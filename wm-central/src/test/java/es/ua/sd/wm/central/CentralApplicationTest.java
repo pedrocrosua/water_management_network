@@ -72,9 +72,50 @@ class CentralApplicationTest {
         assertThat(response.body()).contains("WaterManagement · Central");
     }
 
+    @Test
+    void panelCanBlockAndActivateAStation() throws Exception {
+        HttpResponse<String> blocked = http.send(post("/api/orders/block?stationId=WS-02"), HttpResponse.BodyHandlers.ofString());
+
+        assertThat(blocked.statusCode()).isEqualTo(200);
+        assertThat(blocked.body()).isEqualTo("WS-02 bloqueada");
+        assertThat(findStation("WS-02").get("outOfService")).isEqualTo(true);
+
+        HttpResponse<String> activated = http.send(post("/api/orders/activate?stationId=WS-02"), HttpResponse.BodyHandlers.ofString());
+
+        assertThat(activated.body()).isEqualTo("WS-02 activada");
+        assertThat(findStation("WS-02").get("outOfService")).isEqualTo(false);
+    }
+
+    @Test
+    void orderForAnUnknownStationIsRejected() throws Exception {
+        HttpResponse<String> response = http.send(post("/api/orders/block?stationId=WS-99"), HttpResponse.BodyHandlers.ofString());
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body()).isEqualTo("Unknown station WS-99");
+    }
+
+    private Map<String, Object> findStation(String stationId) throws Exception {
+        HttpResponse<String> response = http.send(request("/api/stations"), HttpResponse.BodyHandlers.ofString());
+        List<Map<String, Object>> stations = JsonMapper.builder().build()
+                .readValue(response.body(), new TypeReference<>() { });
+        for (Map<String, Object> station : stations) {
+            if (station.get("id").equals(stationId)) {
+                return station;
+            }
+        }
+        throw new AssertionError("Station not found: " + stationId);
+    }
+
     private HttpRequest request(String path) {
         return HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
                 .timeout(Duration.ofSeconds(5))
+                .build();
+    }
+
+    private HttpRequest post(String path) {
+        return HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+                .timeout(Duration.ofSeconds(5))
+                .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
     }
 }

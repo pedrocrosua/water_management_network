@@ -124,12 +124,30 @@ Java + Spring Boot · Apache Kafka · SQLite · Docker · Railway
   4. El operario recibe el resumen con el motivo `LEAK`.
 - Código: `MonitorSession`, `IrrigationService.leakReported`, `IrrigationController.execute`.
 
+**CU-10 · Bloquear y activar estaciones**
+- Actor: operador de Central (botones `Bloquear` y `Activar` de cada estación, o
+  `Bloquear todas` y `Activar todas`).
+- Flujo:
+  1. Al bloquearla, la estación pasa a `OUT_OF_SERVICE`: naranja y con el texto "Fuera de
+     Servicio" en el panel y en el Monitor. El bloqueo se guarda en SQLite.
+  2. Si estaba regando, Central corta el riego igual que con una avería (`STOP` con motivo
+     `BLOCKED`), lo guarda y avisa al operario.
+  3. Mientras está bloqueada, Central deniega cualquier riego en ella.
+  4. Al activarla, vuelve a `AVAILABLE` (verde).
+- Código: `OrderController`, `CentralOrders`, `IrrigationService.stationBlocked`,
+  `Station.blocked` / `activated`.
+
+**CU-11 · Ordenar un riego desde Central**
+- Actor: operador de Central (botón `Regar` de una estación disponible, o `Regar todas`,
+  con los segundos que se indican en la cabecera del panel).
+- Flujo: el mismo que CU-05 y CU-06, con origen `CENTRAL` y sin operario al que avisar.
+  `Regar todas` lo pide en cada estación disponible.
+- Código: `OrderController`, `CentralOrders.irrigate`, `IrrigationService.request`.
+
 ### Pendientes
 
 | Caso de uso | Actor |
 |---|---|
-| CU-10 · Bloquear y activar una estación (`OUT_OF_SERVICE`, naranja) | Operador de Central |
-| CU-11 · Ordenar un riego desde Central | Operador de Central |
 | CU-12 · Enviar peticiones desde un fichero (`stationId,limitSeconds`) | Operario de campo |
 
 ## Estado
@@ -140,6 +158,7 @@ En desarrollo. Están terminados:
 - la conexión y la vigilancia de las estaciones;
 - las averías, que cortan el riego en curso;
 - el ciclo completo de un riego pedido por un operario;
+- las órdenes del panel de Central: regar, bloquear y activar una o todas las estaciones;
 - el despliegue de Central y Kafka en Railway.
 
 Quedan pendientes los casos de uso de la lista anterior.

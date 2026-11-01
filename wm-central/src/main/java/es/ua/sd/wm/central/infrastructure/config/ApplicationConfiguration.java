@@ -1,5 +1,6 @@
 package es.ua.sd.wm.central.infrastructure.config;
 
+import es.ua.sd.wm.central.application.CentralOrders;
 import es.ua.sd.wm.central.application.IrrigationService;
 import es.ua.sd.wm.central.application.StationRegistry;
 import es.ua.sd.wm.central.application.port.out.IrrigationProgressPublisher;
@@ -36,5 +37,10 @@ class ApplicationConfiguration {
                                         @Value("${irrigation.answer-timeout-seconds}") long answerTimeoutSeconds) {
         return new IrrigationService(registry, operators, commands, notifier, progress, history,
                 Duration.ofSeconds(answerTimeoutSeconds));
+    }
+
+    @Bean
+    CentralOrders centralOrders(StationRegistry registry, IrrigationService irrigations) {
+        return new CentralOrders(registry, irrigations);
     }
 }

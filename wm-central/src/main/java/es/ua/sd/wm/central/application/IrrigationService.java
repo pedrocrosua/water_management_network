@@ -159,16 +159,13 @@ public class IrrigationService {
      */
     public synchronized void leakReported(String stationId) {
         registry.reportLeak(stationId);
-        OngoingIrrigation irrigation = ongoingByStation.remove(stationId);
-        if (irrigation == null) {
-            return; // no estaba regando
-        }
-        IrrigationRequest request = irrigation.request();
-        log.warn("Leak in {}: stopping request {}", stationId, request.requestId());
-        commands.send(stopCommand(request.requestId(), stationId, EndReason.LEAK));
-        IrrigationEnded ended = new IrrigationEnded(request.requestId(), stationId, request.operatorId(),
-                irrigation.litres(), irrigation.seconds(), EndReason.LEAK);
-        saveAndNotify(irrigation, ended);
+        cutOngoingIrrigation(stationId, EndReason.LEAK);
+    }
+
+    /** WM_Central bloquea la estación (CU-10): pasa a naranja y, si estaba regando, el riego se corta. */
+    public synchronized void stationBlocked(String stationId) {
+        registry.block(stationId);
+        cutOngoingIrrigation(stationId, EndReason.BLOCKED);
     }
 
     /** Para el temporizador al apagar WM_Central. */
@@ -229,6 +226,23 @@ public class IrrigationService {
             return null;
         }
         return irrigation;
+    }
+
+    /**
+     * Si la estación está regando, ordena al Engine cerrar la válvula, guarda lo que llevaba
+     * regado y avisa al operario. No espera al Engine, porque puede estar caído.
+     */
+    private void cutOngoingIrrigation(String stationId, EndReason reason) {
+        OngoingIrrigation irrigation = ongoingByStation.remove(stationId);
+        if (irrigation == null) {
+            return; // no estaba regando
+        }
+        IrrigationRequest request = irrigation.request();
+        log.warn("Stopping request {} in {} ({})", request.requestId(), stationId, reason);
+        commands.send(stopCommand(request.requestId(), stationId, reason));
+        IrrigationEnded ended = new IrrigationEnded(request.requestId(), stationId, request.operatorId(),
+                irrigation.litres(), irrigation.seconds(), reason);
+        saveAndNotify(irrigation, ended);
     }
 
     /** Guarda el riego terminado y envía el resumen al operario. */

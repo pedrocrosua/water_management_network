@@ -124,7 +124,19 @@ public class StationMonitor implements EngineEvents {
     }
 
     private void showState(String state) {
-        log.info(">>> Station {} is now {}", station.id(), state);
+        log.info(">>> Station {} is now {}: {}", station.id(), state, stateText(state));
+    }
+
+    /** El color y el texto que muestra el panel de WM_Central para cada estado. */
+    static String stateText(String state) {
+        return switch (state) {
+            case "AVAILABLE" -> "VERDE - Disponible";
+            case "IRRIGATING" -> "VERDE - Regando";
+            case "LEAK" -> "ROJO - Fuga";
+            case "OUT_OF_SERVICE" -> "NARANJA - Fuera de Servicio";
+            case "DISCONNECTED" -> "GRIS - Desconectada";
+            default -> state; // un estado nuevo se muestra tal cual
+        };
     }
 
     /** Un mensaje para WM_Central cuyo envío puede fallar. */

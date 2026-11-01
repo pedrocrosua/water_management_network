@@ -85,6 +85,16 @@ public class StationRegistry {
         changeExisting(stationId, Station::leakCleared);
     }
 
+    /** WM_Central bloquea la estación. El bloqueo se guarda y sigue tras reiniciar. */
+    public void block(String stationId) {
+        changeExisting(stationId, Station::blocked);
+    }
+
+    /** WM_Central vuelve a activar la estación. */
+    public void activate(String stationId) {
+        changeExisting(stationId, Station::activated);
+    }
+
     /** Cambia una estación que ya existe. Si no existe, no hace nada y devuelve null. */
     private Station changeExisting(String stationId, UnaryOperator<Station> update) {
         return change(stationId, current -> current == null ? null : update.apply(current));

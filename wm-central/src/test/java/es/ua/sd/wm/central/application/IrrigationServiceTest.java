@@ -281,6 +281,30 @@ class IrrigationServiceTest {
     }
 
     @Test
+    void blockingAStationStopsItsIrrigationAndSavesTheWaterSoFar() {
+        startIrrigation("R1");
+        service.telemetryReceived(new Telemetry("R1", "WS-01", "FO-001", 20.0, 2.0, 6));
+
+        service.stationBlocked("WS-01");
+
+        assertThat(registry.find("WS-01").orElseThrow().state()).isEqualTo(StationState.OUT_OF_SERVICE);
+        assertThat(sentCommands.getLast())
+                .isEqualTo(new StationCommand("R1", CommandType.STOP, "WS-01", null, null, EndReason.BLOCKED));
+        assertThat(savedIrrigations).singleElement()
+                .satisfies(saved -> assertThat(saved.endReason()).isEqualTo(EndReason.BLOCKED));
+        assertThat(notifications.getLast().message()).isEqualTo("WS-01 finished (BLOCKED): 2.0 L in 6 s");
+    }
+
+    @Test
+    void blockedStationDeniesNewRequests() {
+        service.stationBlocked("WS-01");
+
+        service.request(request("R1", "FO-001", "WS-01"));
+
+        assertDeniedWith("WS-01 is not available (OUT_OF_SERVICE)");
+    }
+
+    @Test
     void leakWithoutAnIrrigationOnlyChangesTheStation() {
         service.leakReported("WS-01");
 
