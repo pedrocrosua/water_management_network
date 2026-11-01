@@ -7,57 +7,18 @@
     <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-<header class="top-bar">
-    <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <div>
-            <h1>WaterManagement</h1>
-            <p class="subtitle">Panel de monitorización de WM_Central</p>
-        </div>
+<header>
+    <h1>WaterManagement · Central</h1>
+    <p id="connection" class="connection">Conectando…</p>
+    <div class="orders">
+        <label>Segundos de riego <input id="seconds" type="number" min="1" value="30"></label>
+        <button type="button" id="irrigate-all">Regar todas</button>
+        <button type="button" id="block-all">Bloquear todas</button>
+        <button type="button" id="activate-all">Activar todas</button>
     </div>
-    <div class="status">
-        <p id="connection" class="connection">Conectando…</p>
-        <p id="last-update" class="last-update"></p>
-    </div>
+    <p id="order-result" class="order-result"></p>
 </header>
-
-<main class="layout">
-    <div class="main-column">
-        <section class="summary" aria-label="Resumen de las estaciones">
-            <p class="summary-item AVAILABLE"><strong id="count-AVAILABLE">0</strong> Disponibles</p>
-            <p class="summary-item IRRIGATING"><strong id="count-IRRIGATING">0</strong> Regando</p>
-            <p class="summary-item LEAK"><strong id="count-LEAK">0</strong> Con fuga</p>
-            <p class="summary-item OUT_OF_SERVICE"><strong id="count-OUT_OF_SERVICE">0</strong> Fuera de servicio</p>
-            <p class="summary-item DISCONNECTED"><strong id="count-DISCONNECTED">0</strong> Desconectadas</p>
-        </section>
-
-        <section class="box">
-            <h2>Órdenes a todas las estaciones</h2>
-            <div class="orders">
-                <label class="seconds">Duración del riego
-                    <input id="seconds" type="number" min="1" value="30"> s
-                </label>
-                <button type="button" id="irrigate-all" class="primary">Regar todas</button>
-                <button type="button" id="block-all">Bloquear todas</button>
-                <button type="button" id="activate-all">Activar todas</button>
-            </div>
-            <p class="hint">La duración vale también para el botón Regar de cada estación.</p>
-            <p id="order-result" class="order-result" hidden></p>
-        </section>
-
-        <section>
-            <h2>Estaciones de riego</h2>
-            <p id="no-stations" class="empty">Todavía no hay ninguna estación registrada en Central.</p>
-            <div id="stations" class="stations"></div>
-        </section>
-    </div>
-
-    <aside class="box activity">
-        <h2>Actividad reciente</h2>
-        <p id="no-activity" class="empty">Aquí aparecerán los cambios de estado y las órdenes enviadas.</p>
-        <ol id="activity" class="activity-list"></ol>
-    </aside>
-</main>
+<main id="stations" class="stations"></main>
 <script src="panel.js"></script>
 </body>
 </html>

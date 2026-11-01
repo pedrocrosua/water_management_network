@@ -112,9 +112,8 @@ Java + Spring Boot · Apache Kafka · SQLite · Docker · Railway
 
 **CU-08 · Monitorizar la red**
 - Actor: operador de Central.
-- Flujo: el panel web muestra todas las estaciones con su color de estado, el caudal y el
-  agua de cada riego, un resumen de cuántas hay en cada estado y la actividad reciente
-  (cambios de estado y órdenes enviadas). Se actualiza solo, mediante eventos del servidor (SSE).
+- Flujo: el panel web muestra todas las estaciones con su color de estado y el progreso
+  de los riegos. Se actualiza solo, mediante eventos del servidor (SSE).
 - Código: `PanelBroadcaster`, `panel.js`.
 
 **CU-09 · Cortar un riego cuando aparece una avería**
