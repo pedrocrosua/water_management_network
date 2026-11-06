@@ -1,6 +1,8 @@
 INSERT OR IGNORE INTO operators (id, name) VALUES
     ('FO-001', 'Ana Garcia'),
-    ('FO-002', 'Luis Perez');
+    ('FO-002', 'Luis Perez'),
+    ('FO-003', 'Pedro Cros'),
+    ('FO-004', 'Jose Garcia');
 
 INSERT OR IGNORE INTO stations (id, location, state) VALUES
     ('WS-01', 'Parque de Canalejas', 'DISCONNECTED'),
